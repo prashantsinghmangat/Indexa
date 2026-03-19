@@ -1,4 +1,4 @@
-# Indexa v2.0 — Quick Start
+# Indexa v2.1 — Quick Start
 
 Get up and running in under 2 minutes.
 
@@ -8,7 +8,7 @@ Get up and running in under 2 minutes.
 - npm
 - Git (for incremental updates)
 
-## 1. Install
+## 1. Install & Build
 
 ```powershell
 cd D:\Project\Indexa
@@ -24,73 +24,54 @@ npm run build
 node dist/cli/index.js init
 ```
 
-This creates:
-- `config/indexa.config.json` — default settings
-- `data/` — empty index storage
-
 ## 3. Index Your Codebase
 
 ```powershell
 node dist/cli/index.js index "D:\path\to\your\project"
 ```
 
-Example:
-```powershell
-node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass"
+Example output:
 ```
-
-Output:
-```
-Indexing complete in 53.68s
+Indexing complete in 39.18s
   Files indexed: 1353
   Chunks created: 12317
   Data stored in: ./data
 ```
 
-> Code is NOT stored in the index. Each chunk stores byte offsets — code is read from source files on demand.
+## 4. Context Bundle (PRIMARY)
 
-## 4. Search
+The most important command. Returns relevant symbols + dependencies within a token budget:
 
 ```powershell
-# Standard search (topK=5)
-node dist/cli/index.js search "vendor service"
+node dist/cli/index.js bundle "vendor service area" --token-budget 1500
+```
 
-# Limit results
-node dist/cli/index.js search "authentication" --top-k 3
+Output: 2-7 symbols with source code + their dependencies, all packed within 1500 tokens.
 
-# Token budget mode (packs results until budget exhausted)
+## 5. Search
+
+```powershell
+# Smart auto-routing: identifiers → symbol lookup, short → keyword, else → hybrid
+node dist/cli/index.js search "VendorService"               # → symbol lookup
+node dist/cli/index.js search "vendor service"               # → BM25 keyword
+node dist/cli/index.js search "vendor service area logic"    # → hybrid
+
+# Token budget mode
 node dist/cli/index.js search "service" --token-budget 500
 ```
 
-Results show stable symbol IDs like `D:/project/src/auth.ts::validateToken#function`.
-
-## 5. Start the API Server
+## 6. Start the API Server
 
 ```powershell
 node dist/cli/index.js serve
 ```
 
-Server starts at http://localhost:3000. Test with:
+Test the primary endpoint:
 ```powershell
-curl -X POST http://localhost:3000/api/search -H "Content-Type: application/json" -d "{\"query\": \"vendor service\", \"topK\": 3}"
+curl -X POST http://localhost:3000/api/context-bundle -H "Content-Type: application/json" -d "{\"query\": \"vendor service\", \"tokenBudget\": 1500}"
 ```
 
-New v2 endpoints:
-```powershell
-# File outline (symbols without code)
-curl "http://localhost:3000/api/outline?path=vendor.service.js"
-
-# Find references to a symbol
-curl "http://localhost:3000/api/references?name=VendorService"
-
-# Blast radius analysis
-curl "http://localhost:3000/api/blast-radius?name=VendorService"
-
-# Get symbol by stable ID
-curl "http://localhost:3000/api/symbol/src%2Fauth.ts%3A%3AvalidateToken%23function"
-```
-
-## 6. Use with Claude Code (MCP)
+## 7. Use with Claude Code (MCP)
 
 Add to `~/.mcp.json`:
 ```json
@@ -104,27 +85,12 @@ Add to `~/.mcp.json`:
 }
 ```
 
-Restart Claude Code. You now have 12 tools available:
-
-| Tool | Description |
-|------|-------------|
-| `indexa_search` | Hybrid/semantic/keyword search with token budgeting |
-| `indexa_get_symbol` | O(1) lookup by stable symbol ID |
-| `indexa_find_symbol` | Name-based symbol search |
-| `indexa_file_outline` | Symbol outline for a file |
-| `indexa_dependency_graph` | Dependency graph traversal |
-| `indexa_find_importers` | Who imports from a file |
-| `indexa_find_references` | Who references a symbol |
-| `indexa_class_hierarchy` | Parent/child class relationships |
-| `indexa_context_bundle` | Symbols + imports, token-budgeted |
-| `indexa_blast_radius` | Impact analysis |
-| `indexa_index` | Index a directory |
-| `indexa_stats` | Index statistics |
+Restart Claude Code. 8 tools available — `indexa_context_bundle` is the PRIMARY tool LLMs should use first.
 
 ## What's Next?
 
 - [CLI Reference](./cli-reference.md) — all commands and options
 - [API Reference](./api-reference.md) — REST endpoint details
-- [MCP Integration](./mcp-integration.md) — Claude Code setup and all 12 tools
+- [MCP Integration](./mcp-integration.md) — Claude Code setup and all 8 tools
 - [Configuration](./configuration.md) — customize file patterns, port, etc.
 - [Architecture](./architecture.md) — how it all works

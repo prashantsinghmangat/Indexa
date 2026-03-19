@@ -1,4 +1,4 @@
-# Indexa v2.0 — Troubleshooting
+# Indexa v2.1 — Troubleshooting
 
 ## Common Issues
 

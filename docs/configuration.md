@@ -1,4 +1,4 @@
-# Indexa v2.0 — Configuration
+# Indexa v2.1 — Configuration
 
 ## Config File
 
