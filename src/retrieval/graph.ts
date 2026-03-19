@@ -1,6 +1,6 @@
-import { IndexedChunk, DepGraphNode, ContextBundle, RetrievedSymbol, ImportRef } from '../types';
+import { IndexedChunk, DepGraphNode, ContextBundle, RetrievedSymbol, SearchResult } from '../types';
 import { VectorDB } from '../storage/vector-db';
-import { readCodeAtOffset, estimateTokens, logger } from '../utils';
+import { readCodeAtOffset, estimateTokens, logger, packByTokenBudget } from '../utils';
 
 /**
  * Dependency graph and relationship analysis.
@@ -140,6 +140,76 @@ export class GraphAnalysis {
             totalTokens += importTokens;
           }
         }
+      }
+    }
+
+    return {
+      symbols,
+      imports: Array.from(importMap.values()),
+      estimatedTokens: totalTokens,
+    };
+  }
+
+  /**
+   * Query-driven context bundle: search → rank → fetch code → pack with deps.
+   * This is the PRIMARY tool for LLM consumption.
+   */
+  buildQueryBundle(
+    searchResults: SearchResult[],
+    tokenBudget: number = 2000
+  ): ContextBundle {
+    const symbols: RetrievedSymbol[] = [];
+    const importMap = new Map<string, RetrievedSymbol>();
+    let totalTokens = 0;
+
+    // Pack primary symbols from search results
+    for (const result of searchResults) {
+      const chunk = result.chunk;
+      const code = readCodeAtOffset(chunk.filePath, chunk.byteOffset, chunk.byteLength);
+      if (!code) continue;
+
+      const symTokens = estimateTokens(code) + estimateTokens(chunk.summary);
+      if (totalTokens + symTokens > tokenBudget && symbols.length > 0) break;
+
+      symbols.push({
+        id: chunk.id,
+        name: chunk.name,
+        type: chunk.type,
+        filePath: chunk.filePath,
+        startLine: chunk.startLine,
+        endLine: chunk.endLine,
+        code,
+        summary: chunk.summary,
+      });
+      totalTokens += symTokens;
+
+      // Resolve 1-level dependencies within remaining budget
+      for (const depName of chunk.dependencies.slice(0, 5)) {
+        if (importMap.has(depName)) continue;
+
+        const depChunks = this.vectorDB.findByName(depName);
+        if (depChunks.length === 0) continue;
+
+        const dep = depChunks[0];
+        if (dep.id === chunk.id) continue; // skip self
+
+        const depCode = readCodeAtOffset(dep.filePath, dep.byteOffset, dep.byteLength);
+        if (!depCode) continue;
+
+        const depTokens = estimateTokens(depCode);
+        if (totalTokens + depTokens > tokenBudget) continue;
+
+        importMap.set(depName, {
+          id: dep.id,
+          name: dep.name,
+          type: dep.type,
+          filePath: dep.filePath,
+          startLine: dep.startLine,
+          endLine: dep.endLine,
+          code: depCode,
+          summary: dep.summary,
+        });
+        totalTokens += depTokens;
       }
     }
 

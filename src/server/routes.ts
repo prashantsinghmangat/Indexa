@@ -20,8 +20,9 @@ export function createRouter(
   const searchController = new SearchController(vectorDB, embedder);
   const indexController = new IndexController(config, vectorDB, metadataDB, embedder);
 
-  // Search
+  // Search & context
   router.post('/search', searchController.search);
+  router.post('/context-bundle', searchController.contextBundle);
 
   // Index operations
   router.post('/update', indexController.update);

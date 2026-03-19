@@ -83,21 +83,111 @@ export function getByteRange(content: string, startLine: number, endLine: number
 
 // --- Summaries ---
 
-/** Generate a short summary from code */
+/** Generate a smart summary from code and metadata */
 export function summarizeCode(code: string, name: string, type: string): string {
   const lines = code.split('\n');
   const lineCount = lines.length;
 
-  let firstLine = '';
+  // Extract signature (first meaningful line)
+  let signature = '';
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed && !trimmed.startsWith('//') && !trimmed.startsWith('/*') && !trimmed.startsWith('*')) {
-      firstLine = trimmed.substring(0, 80);
+      signature = trimmed.substring(0, 120);
       break;
     }
   }
 
-  return `${type} "${name}" (${lineCount} lines): ${firstLine}`;
+  // Extract parameters from function/method signatures
+  const paramMatch = signature.match(/\(([^)]*)\)/);
+  const params = paramMatch ? paramMatch[1].split(',').map(p => p.trim().split(/[:\s=]/)[0].trim()).filter(Boolean) : [];
+
+  // Extract return type hint
+  const returnMatch = signature.match(/\):\s*([^{]+)/);
+  const returnType = returnMatch ? returnMatch[1].trim() : '';
+
+  // Detect what the function does from its name
+  const purpose = inferPurpose(name, type);
+
+  // Build compact summary
+  const parts: string[] = [`${type} ${name}`];
+  if (params.length > 0 && params.length <= 4) {
+    parts.push(`(${params.join(', ')})`);
+  } else if (params.length > 4) {
+    parts.push(`(${params.slice(0, 3).join(', ')}, +${params.length - 3} more)`);
+  }
+  if (returnType && returnType.length < 30) {
+    parts.push(`→ ${returnType}`);
+  }
+  parts.push(`[${lineCount}L]`);
+  if (purpose) {
+    parts.push(`— ${purpose}`);
+  }
+
+  return parts.join(' ');
+}
+
+/** Infer purpose from symbol name using common patterns */
+function inferPurpose(name: string, type: string): string {
+  const lower = name.toLowerCase();
+  const baseName = name.replace(/^(get|set|is|has|can|should|will|did|on|handle|create|update|delete|remove|add|fetch|load|save|parse|validate|check|find|search|filter|sort|format|render|init|setup|configure|register|process|transform|convert|build|make|ensure|resolve|compute|calculate)/i, '');
+
+  if (/^get[A-Z]/.test(name)) return `retrieves ${splitCamelCase(baseName)}`;
+  if (/^set[A-Z]/.test(name)) return `sets ${splitCamelCase(baseName)}`;
+  if (/^is[A-Z]|^has[A-Z]|^can[A-Z]/.test(name)) return `checks ${splitCamelCase(baseName)}`;
+  if (/^on[A-Z]|^handle[A-Z]/.test(name)) return `handles ${splitCamelCase(baseName)}`;
+  if (/^create[A-Z]|^build[A-Z]|^make[A-Z]/.test(name)) return `creates ${splitCamelCase(baseName)}`;
+  if (/^update[A-Z]/.test(name)) return `updates ${splitCamelCase(baseName)}`;
+  if (/^delete[A-Z]|^remove[A-Z]/.test(name)) return `removes ${splitCamelCase(baseName)}`;
+  if (/^fetch[A-Z]|^load[A-Z]/.test(name)) return `loads ${splitCamelCase(baseName)}`;
+  if (/^save[A-Z]/.test(name)) return `saves ${splitCamelCase(baseName)}`;
+  if (/^parse[A-Z]/.test(name)) return `parses ${splitCamelCase(baseName)}`;
+  if (/^validate[A-Z]|^check[A-Z]/.test(name)) return `validates ${splitCamelCase(baseName)}`;
+  if (/^find[A-Z]|^search[A-Z]|^filter[A-Z]/.test(name)) return `finds ${splitCamelCase(baseName)}`;
+  if (/^render[A-Z]/.test(name)) return `renders ${splitCamelCase(baseName)}`;
+  if (/^init|^setup|^configure/.test(lower)) return `initializes ${splitCamelCase(baseName) || type}`;
+  if (/^transform|^convert/.test(lower)) return `transforms ${splitCamelCase(baseName)}`;
+  if (type === 'component') return `UI component`;
+  if (type === 'controller') return `AngularJS controller`;
+  if (type === 'service') return `service provider`;
+  return '';
+}
+
+/** Split camelCase into lowercase words */
+function splitCamelCase(name: string): string {
+  return name
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .toLowerCase()
+    .trim();
+}
+
+// --- Query routing ---
+
+export type QueryIntent = 'symbol_lookup' | 'keyword' | 'hybrid';
+
+/** Detect query intent to route to the best search strategy */
+export function detectQueryIntent(query: string): QueryIntent {
+  const trimmed = query.trim();
+
+  // Single word that looks like an identifier: camelCase, PascalCase, snake_case, $prefix
+  if (/^[\w$]+$/.test(trimmed) && (/[A-Z]/.test(trimmed) || trimmed.includes('_') || trimmed.startsWith('$'))) {
+    return 'symbol_lookup';
+  }
+
+  // Looks like a symbol ID (contains :: or #)
+  if (trimmed.includes('::') || trimmed.includes('#')) {
+    return 'symbol_lookup';
+  }
+
+  // Short query (1-2 words, no spaces or just one) — keyword is more precise
+  const words = trimmed.split(/\s+/);
+  if (words.length <= 2 && words.every(w => w.length <= 30)) {
+    return 'keyword';
+  }
+
+  // Default: hybrid for natural language queries
+  return 'hybrid';
 }
 
 // --- Token estimation ---
