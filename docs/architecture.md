@@ -1,226 +1,141 @@
-# Indexa v2.1 — Architecture
+# Indexa v3.0 — Architecture
 
 ## Overview
 
-Indexa is an AST-based codebase indexing server that provides semantic and structural code retrieval via the Model Context Protocol (MCP). It reduces LLM token usage by returning only the relevant code chunks instead of full files.
+Indexa is a code intelligence system that provides semantic retrieval, execution flow tracing, and code explanation via the Model Context Protocol (MCP).
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                       Consumers                               │
-│  Claude Code (MCP, 8 tools)  │  REST API  │  CLI              │
-└──────────┬───────────────────┴──────┬─────┴──────┬────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                        Consumers                               │
+│  Claude Code (MCP, 9 tools)  │  REST API  │  CLI               │
+└──────────┬───────────────────┴──────┬─────┴──────┬─────────────┘
            │                          │            │
            ▼                          ▼            ▼
-┌──────────────────────────────────────────────────────────────┐
-│                    Query Router                               │
-│  identifier → symbol lookup | short → BM25 | else → hybrid   │
-└──────────────────────────┬───────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│                   Intelligence Layer                           │
+│                                                                │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐ │
+│  │  Flow Engine  │  │  Explain     │  │  LRU Query Cache     │ │
+│  │  (call trace) │  │  Engine      │  │  (100 entries, 5min) │ │
+│  └──────────────┘  └──────────────┘  └──────────────────────┘ │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │              Context Stitching (connections)              │ │
+│  └──────────────────────────────────────────────────────────┘ │
+└──────────────────────────┬────────────────────────────────────┘
                            │
-┌──────────────────────────▼───────────────────────────────────┐
-│                     Indexa Core                               │
-│                                                               │
+┌──────────────────────────▼────────────────────────────────────┐
+│                    Query Router                                │
+│  identifier → symbol lookup | short → BM25 | else → hybrid    │
+└──────────────────────────┬────────────────────────────────────┘
+                           │
+┌──────────────────────────▼────────────────────────────────────┐
+│                     Core Engine                                │
+│                                                                │
 │  ┌──────────────┐  ┌───────────────┐  ┌────────────────────┐ │
 │  │   Indexer     │  │  Retrieval    │  │    Storage          │ │
-│  │              │  │               │  │                    │ │
-│  │  Parser      │  │  Semantic     │  │  VectorDB          │ │
-│  │  Chunker     │  │  BM25 Keyword │  │  (metadata+embed)  │ │
-│  │  Embedder    │  │  Hybrid       │  │                    │ │
-│  │  Updater     │  │  Graph        │  │  MetadataDB        │ │
-│  │              │  │               │  │  (file hashes)     │ │
+│  │  Parser      │  │  Semantic     │  │  VectorDB           │ │
+│  │  Chunker     │  │  BM25 Keyword │  │  MetadataDB         │ │
+│  │  Embedder    │  │  Hybrid       │  │  (atomic writes)    │ │
+│  │  Updater     │  │  Graph        │  │                    │ │
 │  └──────────────┘  └───────────────┘  └────────────────────┘ │
-│                                                               │
+│                                                                │
 │  ┌────────────────────────────────────────────────────────┐   │
-│  │  Source Files (on disk) — code read via byte offsets   │   │
+│  │  Source Files — code read via byte offsets (O(1))      │   │
 │  └────────────────────────────────────────────────────────┘   │
-└───────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────┘
 ```
 
-## Core Principles
+## Intelligence Layer (`src/intelligence/`)
 
-### 1. Byte-Offset Retrieval
+### Flow Engine (`flow.ts`)
 
-Code is NOT stored in the index. Each symbol stores `byteOffset` and `byteLength`. Code is read from source files on demand via `seek() + read()` — O(1).
+Traces execution paths across functions and files using BFS:
 
-### 2. Query Routing
+1. Resolve query → entry symbol (direct ID, name match, or search)
+2. For each symbol: find callees via `dependencies` → indexed name matches
+3. BFS traversal with depth limit (max 6) and cycle detection
+4. Filters noise: skips builtins (`console`, `Promise`, `Array`, etc.)
+5. Returns ordered `FlowStep[]` with calls list per step
 
-Before searching, Indexa classifies the query:
+### Explain Engine (`explain.ts`)
 
-| Pattern | Route | Example |
-|---------|-------|---------|
-| Single camelCase/PascalCase/snake_case identifier | Symbol lookup | `VendorService`, `get_user` |
-| Starts with `$` | Symbol lookup | `$scope`, `$http` |
-| Contains `::` or `#` | Direct ID lookup | `src/auth.ts::validate#function` |
-| 1-2 short words | BM25 keyword | `vendor service` |
-| 3+ words or natural language | Full hybrid | `vendor service area logic` |
+Generates structured explanations from actual code:
 
-Falls through automatically if the primary strategy returns nothing.
+1. Runs context bundle search to get relevant symbols
+2. Analyzes symbol names to infer purpose (e.g., `getVendors` → "retrieves vendors")
+3. Builds explanation paragraph from symbols + types + file locations
+4. Generates numbered steps from symbol summaries
+5. Returns `ExplainResult` with explanation, steps, symbolsUsed
 
-### 3. Context Bundles (PRIMARY)
+### Context Stitching (`explain.ts::detectConnections`)
 
-The most important feature. `indexa_context_bundle` is a single-call tool that:
+Adds `connections[]` to context bundles:
 
-```
-Query → Hybrid Search (15 candidates) → Rank → Read Code (byte offsets)
-  → Pack within token budget → Resolve 1-level dependencies → Return
-```
+- Detects `calls` relationships by checking if symbol A's code contains `symbolB(`
+- Detects `depends_on` relationships via import/dependency references
+- Deduplicates connections across relationship types
 
-Returns a ready-to-use context package for LLMs.
+### Query Cache (`cache.ts`)
 
-### 4. Hybrid Scoring
+LRU cache for expensive operations:
 
-Three-component weighted score:
+- **Key:** tool name + JSON-serialized params
+- **Max size:** 100 entries (evicts oldest on full)
+- **TTL:** 5 minutes
+- **Cached:** context_bundle, flow, explain
+- **Auto-cleared** on re-index
+
+## Hybrid Scoring
 
 ```
 score = semantic × 0.5 + keyword(BM25) × 0.3 + name_match × 0.2
 ```
 
-- **Semantic (0.5):** Cosine similarity between query embedding and chunk embedding
-- **Keyword (0.3):** BM25 with field weighting (name 3x, type 2x, summary 1x, path 1x)
-- **Name match (0.2):** Token overlap between query and symbol name (exact=1.0, prefix=0.8, contains=0.5)
+## MCP Tools (9)
 
-## Module Breakdown
-
-### Indexer (`src/indexer/`)
-
-```
-Source Files → Parser → Chunker → Embedder → Storage
-                 ↓
-         byte offsets captured
-         imports extracted
-         methods indexed individually
-         smart summaries generated
-```
-
-| Stage | File | Responsibility |
-|-------|------|---------------|
-| **Parser** | `parser.ts` | AST extraction (ts-morph), byte offsets, imports, methods, AngularJS patterns |
-| **Chunker** | `chunker.ts` | Element → chunk splitting. No code stored, just byte offsets + content hash |
-| **Embedder** | `embedder.ts` | Summary + name + type → 128-dim hash vector. Pluggable for OpenAI/local |
-| **Updater** | `updater.ts` | Full + incremental indexing. Git diff for change detection |
-
-### Retrieval (`src/retrieval/`)
-
-| Module | File | Responsibility |
-|--------|------|---------------|
-| **Semantic** | `semantic.ts` | Cosine similarity against all chunk embeddings |
-| **Keyword** | `keyword.ts` | BM25 with field weighting, IDF, exact-match bonus |
-| **Hybrid** | `hybrid.ts` | Query router + 3-component scoring + token budgeting |
-| **Graph** | `graph.ts` | Dependency graph, references, hierarchy, blast radius, context bundles |
-
-### Storage (`src/storage/`)
-
-| Store | File | Contents |
-|-------|------|---------|
-| **VectorDB** | `vector-db.ts` | Chunk metadata + embeddings (no code). Atomic JSON writes |
-| **MetadataDB** | `metadata-db.ts` | File hash tracking. Atomic JSON writes |
-
-### MCP Transport (`src/mcp/`)
-
-8 tools via stdio:
-
-| # | Tool | Description |
-|---|------|-------------|
-| 1 | **`indexa_context_bundle`** | **PRIMARY.** Query → symbols + deps within token budget |
-| 2 | `indexa_search` | Auto-routed search with scores |
-| 3 | `indexa_symbol` | O(1) ID lookup or name search |
-| 4 | `indexa_file` | File outline or full code |
-| 5 | `indexa_dependencies` | Dependency graph traversal |
-| 6 | `indexa_references` | Find usages + blast radius |
-| 7 | `indexa_index` | Index a directory |
-| 8 | `indexa_stats` | Index statistics |
-
-### Smart Summaries
-
-Generated during indexing from code structure:
-
-| Before (v2.0) | After (v2.1) |
-|---------------|-------------|
-| `service "VendorService" (19 lines): angular.module...` | `service VendorService ('vendorApp') [19L] — service provider` |
-| `function "findVendorsInArea" (15 lines): export function...` | `function findVendorsInArea (query) → VendorDTO[] [15L] — finds vendors in area` |
-
-Infers purpose from name patterns: `get*` → "retrieves", `handle*` → "handles", `validate*` → "validates", etc.
-
-## Data Flow
-
-### Context Bundle Flow (PRIMARY)
-
-```
-1. User/LLM calls: indexa_context_bundle("vendor service area", budget=1500)
-2. Query router detects: natural language → hybrid search
-3. Hybrid search:
-   a. Semantic: embed query → cosine similarity → top 15
-   b. BM25: tokenize → field-weighted scoring → top 15
-   c. Name match: token overlap scoring
-   d. Merge: 0.5×semantic + 0.3×keyword + 0.2×name → ranked list
-4. Context packing:
-   a. For each result (ranked): read code via byte offset
-   b. Estimate tokens (length / 4)
-   c. Add to bundle until budget exhausted
-   d. Resolve 1-level dependencies (top 5 per symbol)
-5. Return: symbols[] + dependencies[] + estimatedTokens
-```
-
-### Incremental Update Flow
-
-```
-1. indexa update → git diff --name-status HEAD~1
-2. Deleted files: remove chunks
-3. Modified files: remove old chunks → re-parse → re-index
-4. Atomic writes: temp-file + rename
-```
-
-## Key Design Decisions
-
-| Decision | Rationale |
-|----------|-----------|
-| **Context bundle as PRIMARY** | Single tool call gets everything an LLM needs. Reduces round-trips. |
-| **Query routing** | Identifier lookups are O(1). No need for full semantic search on `VendorService`. |
-| **0.5/0.3/0.2 weighting** | Semantic catches concepts, BM25 catches exact terms, name match catches symbol names. |
-| **Byte-offset retrieval** | 5x smaller index. No stale code. O(1) access. |
-| **Token budgeting > topK** | LLMs have context windows, not "give me 5 results" requirements. |
-| **Smart summaries** | `findVendors → "finds vendors"` is more useful than the first line of code. |
-| **8 tools (not 12)** | Clean, focused set. Merged overlapping tools. `context_bundle` handles 80% of cases. |
+| # | Tool | Category | Description |
+|---|------|----------|-------------|
+| 1 | `indexa_context_bundle` | Intelligence | PRIMARY. Symbols + deps + connections |
+| 2 | `indexa_flow` | Intelligence | Execution flow tracing |
+| 3 | `indexa_explain` | Intelligence | Code explanation |
+| 4 | `indexa_search` | Retrieval | Auto-routed search |
+| 5 | `indexa_symbol` | Retrieval | O(1) ID lookup or name search |
+| 6 | `indexa_file` | Retrieval | File outline or full code |
+| 7 | `indexa_references` | Analysis | Find usages + blast radius |
+| 8 | `indexa_index` | Management | Index a directory |
+| 9 | `indexa_stats` | Management | Index stats + cache status |
 
 ## File Map
 
 ```
 indexa/
 ├── src/
-│   ├── server/
-│   │   ├── index.ts                   # Express app setup
-│   │   ├── routes.ts                  # Route registration (11 endpoints)
-│   │   └── controllers/
-│   │       ├── search.controller.ts   # POST /search + POST /context-bundle
-│   │       └── index.controller.ts    # /file, /symbol, /outline, /references, /blast-radius, /stats
-│   ├── indexer/
-│   │   ├── parser.ts                  # AST + regex + byte offsets + imports + methods
-│   │   ├── chunker.ts                 # Element → chunk (no code stored)
-│   │   ├── embedder.ts                # Pluggable embeddings
-│   │   └── updater.ts                 # Full + incremental indexing
+│   ├── intelligence/
+│   │   ├── index.ts          # Barrel export
+│   │   ├── cache.ts          # LRU query cache with TTL
+│   │   ├── flow.ts           # Execution flow tracing (BFS)
+│   │   └── explain.ts        # Code explanation + context stitching
 │   ├── retrieval/
-│   │   ├── semantic.ts                # Cosine similarity
-│   │   ├── keyword.ts                 # BM25 + field weighting
-│   │   ├── hybrid.ts                  # Query router + 3-component scoring + token budget
-│   │   └── graph.ts                   # Deps, refs, hierarchy, blast radius, context bundles
+│   │   ├── semantic.ts       # Cosine similarity
+│   │   ├── keyword.ts        # BM25 + field weighting
+│   │   ├── hybrid.ts         # Query router + 3-component scoring
+│   │   └── graph.ts          # Deps, refs, hierarchy, context bundles
+│   ├── indexer/
+│   │   ├── parser.ts         # AST + regex + byte offsets
+│   │   ├── chunker.ts        # Element → chunk (no code stored)
+│   │   ├── embedder.ts       # Pluggable embeddings
+│   │   └── updater.ts        # Full + incremental indexing
 │   ├── storage/
-│   │   ├── vector-db.ts               # Atomic JSON, no inline code
-│   │   └── metadata-db.ts             # Atomic JSON, file hashes
-│   ├── mcp/
-│   │   └── stdio.ts                   # MCP server (8 tools)
-│   ├── types/
-│   │   └── index.ts                   # All interfaces
-│   └── utils/
-│       └── index.ts                   # BM25, byte-offset, query routing, summaries, token estimation
-├── cli/
-│   ├── index.ts                       # Commander CLI (init, index, update, search, bundle, serve)
-│   ├── init.ts                        # indexa init
-│   ├── update.ts                      # indexa index + indexa update
-│   └── search.ts                      # indexa search + indexa bundle
-├── sample-code/                       # Test data
-├── config/indexa.config.json          # Default config
-├── data/                              # Generated index (no inline code)
-├── docs/                              # Documentation (7 guides)
-├── package.json
-├── tsconfig.json
-└── README.md
+│   │   ├── vector-db.ts      # Atomic JSON, no inline code
+│   │   └── metadata-db.ts    # Atomic JSON, file hashes
+│   ├── server/               # Express REST API
+│   ├── mcp/stdio.ts          # MCP server (9 tools)
+│   ├── types/index.ts        # All interfaces
+│   └── utils/index.ts        # BM25, byte-offset, query routing, summaries
+├── cli/                      # Commander CLI (8 commands)
+├── docs/                     # Documentation (7 guides)
+├── sample-code/              # Test data
+├── config/                   # indexa.config.json
+└── data/                     # Generated index
 ```

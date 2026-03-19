@@ -11,6 +11,7 @@ import { Embedder } from '../indexer/embedder';
 import { Updater } from '../indexer/updater';
 import { HybridSearch } from '../retrieval/hybrid';
 import { GraphAnalysis } from '../retrieval/graph';
+import { QueryCache, FlowEngine, ExplainEngine } from '../intelligence';
 import { IndexaConfig } from '../types';
 import { readCodeAtOffset } from '../utils';
 
@@ -38,9 +39,7 @@ function loadConfig(): IndexaConfig {
     try {
       const raw = fs.readFileSync(CONFIG_PATH, 'utf-8');
       return { ...defaults, ...JSON.parse(raw) };
-    } catch {
-      // fall through
-    }
+    } catch { /* fall through */ }
   }
   return defaults;
 }
@@ -53,36 +52,40 @@ const metadataDB = new MetadataDB(config.dataDir);
 const embedder = new Embedder();
 const search = new HybridSearch(vectorDB, embedder);
 const graph = new GraphAnalysis(vectorDB);
+const cache = new QueryCache(100, 5);
+const flowEngine = new FlowEngine(vectorDB, search);
+const explainEngine = new ExplainEngine(graph, search);
 
 const server = new McpServer({
   name: 'indexa',
-  version: '2.1.0',
+  version: '3.0.0',
 });
 
 // ============================================================
 // TOOL 1 (PRIMARY): indexa_context_bundle
-// The main tool LLMs should use. Query → search → pack with deps.
+// Query → search → pack with deps + connections
 // ============================================================
 server.tool(
   'indexa_context_bundle',
-  `PRIMARY TOOL. Given a query, returns the most relevant code symbols packed within a token budget, including 1-level dependencies. Use this as your first tool for any code question.`,
+  'PRIMARY TOOL. Returns relevant code symbols packed within a token budget, with dependencies and connections between symbols. Use this first for any code question.',
   {
-    query: z.string().describe('What you are looking for (e.g. "vendor service area logic", "updateServiceArea", "authentication flow")'),
-    tokenBudget: z.number().min(100).default(2000).describe('Max tokens to return. Keep small (1000-3000) for focused results.'),
+    query: z.string().describe('What you are looking for'),
+    tokenBudget: z.number().min(100).default(2000).describe('Max tokens (1000-3000 for focused results)'),
   },
   async ({ query, tokenBudget }) => {
-    // Search with extra candidates for bundle packing
-    const results = await search.directSearch(query, 15);
+    const cacheKey = QueryCache.key('bundle', { query, tokenBudget });
+    const cached = cache.get<string>(cacheKey);
+    if (cached) return { content: [{ type: 'text' as const, text: cached }] };
 
+    const results = await search.directSearch(query, 15);
     if (results.length === 0) {
       return { content: [{ type: 'text' as const, text: `No results for "${query}".` }] };
     }
 
-    const bundle = graph.buildQueryBundle(results, tokenBudget);
-
+    const stitched = await explainEngine.stitch(results, tokenBudget);
     const lines: string[] = [];
 
-    for (const sym of bundle.symbols) {
+    for (const sym of stitched.symbols) {
       lines.push(`=== [${sym.type}] ${sym.name} ===`);
       lines.push(`ID: ${sym.id}`);
       lines.push(`File: ${sym.filePath}:${sym.startLine}-${sym.endLine}`);
@@ -93,9 +96,9 @@ server.tool(
       lines.push('');
     }
 
-    if (bundle.imports.length > 0) {
-      lines.push(`--- Dependencies (${bundle.imports.length}) ---`);
-      for (const dep of bundle.imports) {
+    if (stitched.imports.length > 0) {
+      lines.push(`--- Dependencies (${stitched.imports.length}) ---`);
+      for (const dep of stitched.imports) {
         lines.push(`[${dep.type}] ${dep.name} — ${dep.filePath}:${dep.startLine}-${dep.endLine}`);
         lines.push('```');
         lines.push(dep.code);
@@ -104,19 +107,108 @@ server.tool(
       }
     }
 
-    lines.push(`Tokens used: ~${bundle.estimatedTokens} / ${tokenBudget}`);
+    if (stitched.connections.length > 0) {
+      lines.push(`--- Connections ---`);
+      for (const conn of stitched.connections) {
+        lines.push(`  ${conn.from} —[${conn.type}]→ ${conn.to}`);
+      }
+      lines.push('');
+    }
 
-    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+    lines.push(`Tokens: ~${stitched.estimatedTokens} / ${tokenBudget}`);
+
+    const text = lines.join('\n');
+    cache.set(cacheKey, text);
+    return { content: [{ type: 'text' as const, text }] };
   }
 );
 
 // ============================================================
-// TOOL 2: indexa_search
-// Raw search results when you need scores and ranking info.
+// TOOL 2: indexa_flow — Execution flow tracing
+// ============================================================
+server.tool(
+  'indexa_flow',
+  'Trace execution flow from a symbol or query. Shows the call chain across functions and files — what calls what, in order.',
+  {
+    query: z.string().describe('Symbol name, ID, or search query to trace from'),
+    depth: z.number().min(1).max(6).default(3).describe('How many levels deep to trace'),
+  },
+  async ({ query, depth }) => {
+    const cacheKey = QueryCache.key('flow', { query, depth });
+    const cached = cache.get<string>(cacheKey);
+    if (cached) return { content: [{ type: 'text' as const, text: cached }] };
+
+    const result = await flowEngine.trace(query, depth);
+
+    if (result.flow.length === 0) {
+      return { content: [{ type: 'text' as const, text: `No execution flow found for "${query}".` }] };
+    }
+
+    const lines: string[] = [`Execution flow from "${result.entry}" (${result.flow.length} steps):\n`];
+
+    for (const step of result.flow) {
+      const indent = '  '.repeat(step.step - 1);
+      const callsStr = step.calls.length > 0 ? ` → calls: ${step.calls.join(', ')}` : '';
+      lines.push(`${indent}${step.step}. [${step.type}] ${step.name}${callsStr}`);
+      lines.push(`${indent}   ${step.summary}`);
+      lines.push(`${indent}   ${step.filePath}`);
+    }
+
+    const text = lines.join('\n');
+    cache.set(cacheKey, text);
+    return { content: [{ type: 'text' as const, text }] };
+  }
+);
+
+// ============================================================
+// TOOL 3: indexa_explain — Code explanation
+// ============================================================
+server.tool(
+  'indexa_explain',
+  'Explain what an area of code does. Returns a human-readable explanation with step-by-step breakdown, built from actual code — no hallucination.',
+  {
+    query: z.string().describe('What to explain (e.g. "vendor service area", "authentication flow")'),
+    tokenBudget: z.number().min(100).default(2000).describe('How much code to analyze'),
+  },
+  async ({ query, tokenBudget }) => {
+    const cacheKey = QueryCache.key('explain', { query, tokenBudget });
+    const cached = cache.get<string>(cacheKey);
+    if (cached) return { content: [{ type: 'text' as const, text: cached }] };
+
+    const result = await explainEngine.explain(query, tokenBudget);
+
+    const lines: string[] = [];
+    lines.push(`## Explanation\n`);
+    lines.push(result.explanation);
+    lines.push('');
+
+    if (result.steps.length > 0) {
+      lines.push(`## Steps\n`);
+      for (let i = 0; i < result.steps.length; i++) {
+        lines.push(`${i + 1}. ${result.steps[i]}`);
+      }
+      lines.push('');
+    }
+
+    if (result.symbolsUsed.length > 0) {
+      lines.push(`## Symbols Analyzed (${result.symbolsUsed.length})\n`);
+      for (const sym of result.symbolsUsed) {
+        lines.push(`  [${sym.type}] ${sym.name} — ${sym.summary}`);
+      }
+    }
+
+    const text = lines.join('\n');
+    cache.set(cacheKey, text);
+    return { content: [{ type: 'text' as const, text }] };
+  }
+);
+
+// ============================================================
+// TOOL 4: indexa_search
 // ============================================================
 server.tool(
   'indexa_search',
-  'Search the indexed codebase. Auto-routes: identifiers → symbol lookup, short queries → keyword, else → hybrid. Use indexa_context_bundle instead if you want code + deps.',
+  'Search the indexed codebase. Auto-routes by query type. Use indexa_context_bundle for code + deps, indexa_explain for understanding.',
   {
     query: z.string().describe('Search query'),
     topK: z.number().min(1).max(50).default(5).describe('Max results'),
@@ -148,17 +240,15 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 3: indexa_symbol
-// Direct O(1) lookup by stable ID, or name search.
+// TOOL 5: indexa_symbol
 // ============================================================
 server.tool(
   'indexa_symbol',
-  'Look up a symbol. Pass a stable ID (e.g. "src/auth.ts::validateToken#function") for O(1) lookup, or a name for search.',
+  'Look up a symbol by stable ID or name.',
   {
     name: z.string().describe('Symbol name or stable ID'),
   },
   async ({ name }) => {
-    // Try direct ID lookup first
     const direct = vectorDB.get(name);
     if (direct) {
       const code = readCodeAtOffset(direct.filePath, direct.byteOffset, direct.byteLength);
@@ -177,7 +267,6 @@ server.tool(
       };
     }
 
-    // Fall back to name search
     const matches = vectorDB.findByName(name);
     if (matches.length === 0) {
       return { content: [{ type: 'text' as const, text: `No symbol matching "${name}".` }] };
@@ -198,15 +287,14 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 4: indexa_file
-// File outline or full chunks for a path.
+// TOOL 6: indexa_file
 // ============================================================
 server.tool(
   'indexa_file',
-  'Get all indexed symbols in a file. Returns outline (names + locations) by default, or full code with include_code=true.',
+  'Get all indexed symbols in a file. Outline by default, full code with include_code=true.',
   {
-    path: z.string().describe('File path (absolute or partial match)'),
-    include_code: z.boolean().default(false).describe('Include source code for each symbol'),
+    path: z.string().describe('File path (absolute or partial)'),
+    include_code: z.boolean().default(false).describe('Include source code'),
   },
   async ({ path: filePath, include_code }) => {
     const chunks = vectorDB.getByFile(filePath);
@@ -236,53 +324,13 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 5: indexa_dependencies
-// Get what a symbol depends on AND what depends on it.
-// ============================================================
-server.tool(
-  'indexa_dependencies',
-  'Get dependencies and dependents of a symbol. Shows what it uses and what uses it.',
-  {
-    symbolId: z.string().describe('Symbol stable ID or name'),
-    depth: z.number().min(1).max(5).default(2).describe('Traversal depth'),
-  },
-  async ({ symbolId, depth }) => {
-    // Try direct graph lookup first
-    let nodes = graph.getDependencyGraph(symbolId, depth);
-
-    // If not found by ID, try by name
-    if (nodes.length === 0) {
-      const matches = vectorDB.findByName(symbolId);
-      if (matches.length > 0) {
-        nodes = graph.getDependencyGraph(matches[0].id, depth);
-      }
-    }
-
-    if (nodes.length === 0) {
-      return { content: [{ type: 'text' as const, text: `No dependencies found for "${symbolId}".` }] };
-    }
-
-    const output = nodes.map(n => [
-      `[${n.type}] ${n.name}`,
-      `  ID: ${n.id}`,
-      `  File: ${n.filePath}`,
-      n.dependsOn.length > 0 ? `  Uses: ${n.dependsOn.slice(0, 10).join(', ')}` : '  Uses: nothing',
-      n.dependedBy.length > 0 ? `  Used by: ${n.dependedBy.slice(0, 10).join(', ')}` : '  Used by: nothing',
-    ].join('\n')).join('\n\n');
-
-    return { content: [{ type: 'text' as const, text: `Dependency graph (${nodes.length} nodes):\n\n${output}` }] };
-  }
-);
-
-// ============================================================
-// TOOL 6: indexa_references
-// Find all usages of a symbol across the codebase.
+// TOOL 7: indexa_references
 // ============================================================
 server.tool(
   'indexa_references',
-  'Find all symbols that reference or depend on a given symbol name.',
+  'Find all references to a symbol + blast radius.',
   {
-    name: z.string().describe('Symbol name to find references for'),
+    name: z.string().describe('Symbol name'),
   },
   async ({ name }) => {
     const refs = graph.findReferences(name);
@@ -291,7 +339,6 @@ server.tool(
     }
 
     const blast = graph.getBlastRadius(name);
-
     const output = [
       `References to "${name}": ${refs.length} direct, ${blast.transitiveRefs} files affected`,
       '',
@@ -306,8 +353,7 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 7: indexa_index
-// Index or re-index a directory.
+// TOOL 8: indexa_index
 // ============================================================
 server.tool(
   'indexa_index',
@@ -327,6 +373,7 @@ server.tool(
     );
 
     const result = await updater.indexAll(absDir);
+    cache.clear(); // Invalidate cache after re-index
     return {
       content: [{
         type: 'text' as const,
@@ -337,12 +384,11 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 8: indexa_stats
-// Quick index stats.
+// TOOL 9: indexa_stats
 // ============================================================
 server.tool(
   'indexa_stats',
-  'Index statistics: chunk count, file count, data location.',
+  'Index statistics and cache status.',
   {},
   async () => {
     const files = metadataDB.getAllFiles();
@@ -352,6 +398,7 @@ server.tool(
         text: [
           `Chunks: ${vectorDB.size}`,
           `Files: ${metadataDB.size}`,
+          `Cache: ${cache.size} entries`,
           `Data: ${config.dataDir}`,
           '',
           `Files (first 30):`,

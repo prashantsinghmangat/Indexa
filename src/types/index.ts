@@ -157,3 +157,39 @@ export interface RetrievedSymbol {
   code: string;
   summary: string;
 }
+
+/** Connection between two symbols in a context bundle */
+export interface SymbolConnection {
+  from: string;
+  to: string;
+  type: 'calls' | 'imports' | 'depends_on' | 'used_by';
+}
+
+/** Enhanced context bundle with connections */
+export interface StitchedBundle extends ContextBundle {
+  connections: SymbolConnection[];
+}
+
+/** A single step in an execution flow */
+export interface FlowStep {
+  step: number;
+  symbolId: string;
+  name: string;
+  type: ChunkType;
+  filePath: string;
+  summary: string;
+  calls: string[];
+}
+
+/** Execution flow result */
+export interface FlowResult {
+  entry: string;
+  flow: FlowStep[];
+}
+
+/** Code explanation result */
+export interface ExplainResult {
+  explanation: string;
+  steps: string[];
+  symbolsUsed: Array<{ id: string; name: string; type: ChunkType; summary: string }>;
+}

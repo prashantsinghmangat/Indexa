@@ -5,26 +5,31 @@ import { KeywordSearch } from '../../retrieval/keyword';
 import { GraphAnalysis } from '../../retrieval/graph';
 import { VectorDB } from '../../storage/vector-db';
 import { Embedder } from '../../indexer/embedder';
+import { FlowEngine, ExplainEngine } from '../../intelligence';
 import { SearchRequest } from '../../types';
 import { logger, readCodeAtOffset } from '../../utils';
 
 /**
- * Controller for search and context bundle API endpoints.
+ * Controller for search, context bundle, flow, and explain endpoints.
  */
 export class SearchController {
   private hybridSearch: HybridSearch;
   private semanticSearch: SemanticSearch;
   private keywordSearch: KeywordSearch;
   private graph: GraphAnalysis;
+  private flowEngine: FlowEngine;
+  private explainEngine: ExplainEngine;
 
   constructor(vectorDB: VectorDB, embedder: Embedder) {
     this.hybridSearch = new HybridSearch(vectorDB, embedder);
     this.semanticSearch = new SemanticSearch(vectorDB, embedder);
     this.keywordSearch = new KeywordSearch(vectorDB);
     this.graph = new GraphAnalysis(vectorDB);
+    this.flowEngine = new FlowEngine(vectorDB, this.hybridSearch);
+    this.explainEngine = new ExplainEngine(this.graph, this.hybridSearch);
   }
 
-  /** POST /search — auto-routed hybrid search */
+  /** POST /search */
   search = async (req: Request, res: Response): Promise<void> => {
     try {
       const { query, topK = 5, tokenBudget, mode = 'hybrid' } = req.body as SearchRequest;
@@ -74,7 +79,7 @@ export class SearchController {
     }
   };
 
-  /** POST /context-bundle — PRIMARY: query → search → pack with deps */
+  /** POST /context-bundle — PRIMARY: query → search → pack with deps + connections */
   contextBundle = async (req: Request, res: Response): Promise<void> => {
     try {
       const { query, tokenBudget = 2000 } = req.body as { query: string; tokenBudget?: number };
@@ -85,20 +90,59 @@ export class SearchController {
       }
 
       const results = await this.hybridSearch.directSearch(query, 15);
-      const bundle = this.graph.buildQueryBundle(results, tokenBudget);
+      const stitched = await this.explainEngine.stitch(results, tokenBudget);
 
-      logger.info(`Context bundle "${query}" (budget=${tokenBudget}): ${bundle.symbols.length} symbols, ~${bundle.estimatedTokens} tokens`);
+      logger.info(`Context bundle "${query}": ${stitched.symbols.length} symbols, ${stitched.connections.length} connections`);
 
       res.json({
         query,
         tokenBudget,
-        estimatedTokens: bundle.estimatedTokens,
-        symbols: bundle.symbols,
-        dependencies: bundle.imports,
+        estimatedTokens: stitched.estimatedTokens,
+        symbols: stitched.symbols,
+        dependencies: stitched.imports,
+        connections: stitched.connections,
       });
     } catch (err) {
       logger.error(`Context bundle failed: ${err}`);
       res.status(500).json({ error: 'Context bundle failed' });
+    }
+  };
+
+  /** POST /flow — trace execution flow */
+  flow = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { query, depth = 3 } = req.body as { query: string; depth?: number };
+
+      if (!query || typeof query !== 'string') {
+        res.status(400).json({ error: 'Missing or invalid "query" field' });
+        return;
+      }
+
+      const result = await this.flowEngine.trace(query, Math.min(depth, 6));
+      logger.info(`Flow "${query}": ${result.flow.length} steps`);
+      res.json(result);
+    } catch (err) {
+      logger.error(`Flow failed: ${err}`);
+      res.status(500).json({ error: 'Flow tracing failed' });
+    }
+  };
+
+  /** POST /explain — generate code explanation */
+  explain = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { query, tokenBudget = 2000 } = req.body as { query: string; tokenBudget?: number };
+
+      if (!query || typeof query !== 'string') {
+        res.status(400).json({ error: 'Missing or invalid "query" field' });
+        return;
+      }
+
+      const result = await this.explainEngine.explain(query, tokenBudget);
+      logger.info(`Explain "${query}": ${result.symbolsUsed.length} symbols`);
+      res.json(result);
+    } catch (err) {
+      logger.error(`Explain failed: ${err}`);
+      res.status(500).json({ error: 'Explain failed' });
     }
   };
 }

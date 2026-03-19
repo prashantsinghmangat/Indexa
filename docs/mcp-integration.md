@@ -1,28 +1,10 @@
-# Indexa v2.1 — MCP Integration with Claude Code
+# Indexa v3.0 — MCP Integration with Claude Code
 
-Indexa acts as an MCP server, giving Claude Code direct access to your indexed codebase through 8 focused tools.
+Indexa provides 9 MCP tools including intelligence features: execution flow tracing, code explanation, and context-stitched bundles.
 
 ## Setup
 
-### 1. Build
-
-```powershell
-cd D:\Project\Indexa
-npm install
-npm run build
-```
-
-### 2. Index
-
-```powershell
-node dist/cli/index.js init
-node dist/cli/index.js index "D:\path\to\your\project"
-```
-
-### 3. Configure Claude Code
-
 Add to `~/.mcp.json`:
-
 ```json
 {
   "mcpServers": {
@@ -34,92 +16,88 @@ Add to `~/.mcp.json`:
 }
 ```
 
-### 4. Restart Claude Code
+Restart Claude Code.
 
 ---
 
-## MCP Tools (8)
+## MCP Tools (9)
 
-### `indexa_context_bundle` — PRIMARY
+### Intelligence Tools
 
-**Use this first for any code question.** Given a query + token budget, returns packed symbols + 1-level dependencies.
+#### `indexa_context_bundle` — PRIMARY
+
+**Use this first.** Returns relevant symbols + code + dependencies + connections within a token budget.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
 | `query` | string | *required* | What you're looking for |
-| `tokenBudget` | number | 2000 | Max tokens. Keep 1000-3000 for focused results |
+| `tokenBudget` | number | 2000 | Max tokens |
 
-**Example prompt:** "Use indexa_context_bundle to find vendor service area logic"
+#### `indexa_flow`
 
----
-
-### `indexa_search`
-
-Raw search with scores. Auto-routes by query type (identifier → symbol lookup, short → BM25, else → hybrid). Use `indexa_context_bundle` instead if you want code + deps.
+Trace execution flow. Shows what calls what across functions and files.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `query` | string | *required* | Search query |
-| `topK` | number | 5 | Max results |
-| `tokenBudget` | number | 0 | Token budget (0 = use topK) |
+| `query` | string | *required* | Symbol name, ID, or search query |
+| `depth` | number | 3 | Traversal depth (1-6) |
 
----
+#### `indexa_explain`
 
-### `indexa_symbol`
-
-O(1) lookup by stable ID, or name search.
-
-| Param | Type | Description |
-|-------|------|-------------|
-| `name` | string | Stable ID (e.g. `src/auth.ts::validate#function`) or symbol name |
-
----
-
-### `indexa_file`
-
-File outline (default) or full code for all symbols.
+Generate a human-readable explanation with step-by-step breakdown. Built from actual code — no hallucination.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `path` | string | *required* | File path |
-| `include_code` | boolean | false | Include source code |
+| `query` | string | *required* | What to explain |
+| `tokenBudget` | number | 2000 | How much code to analyze |
 
 ---
 
-### `indexa_dependencies`
+### Search & Retrieval Tools
 
-What a symbol depends on + what depends on it.
+#### `indexa_search`
+Auto-routed search with scores.
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| `symbolId` | string | *required* | Symbol ID or name |
-| `depth` | number | 2 | Traversal depth (1-5) |
+#### `indexa_symbol`
+O(1) lookup by stable ID or name search.
 
----
+#### `indexa_file`
+File outline (default) or full code (`include_code: true`).
 
-### `indexa_references`
-
-Find all usages of a symbol + blast radius (direct + transitive).
-
-| Param | Type | Description |
-|-------|------|-------------|
-| `name` | string | Symbol name |
+#### `indexa_references`
+Find all usages of a symbol + blast radius.
 
 ---
 
-### `indexa_index`
+### Index Management
 
-Index or re-index a directory.
+#### `indexa_index`
+Index or re-index a directory. Clears query cache.
 
-| Param | Type | Description |
-|-------|------|-------------|
-| `directory` | string | Absolute path |
+#### `indexa_stats`
+Index statistics + cache status.
 
 ---
 
-### `indexa_stats`
+## Caching
 
-Index statistics. No parameters.
+Responses for `indexa_context_bundle`, `indexa_flow`, and `indexa_explain` are cached in-memory:
+- **Max entries:** 100
+- **TTL:** 5 minutes
+- **Auto-invalidated** on re-index
+
+Second call to the same query returns instantly.
+
+---
+
+## Usage Tips
+
+1. **Start with `indexa_context_bundle`** — handles 80% of cases
+2. **Use `indexa_flow` to understand call chains** — "what happens when this function runs?"
+3. **Use `indexa_explain` for onboarding** — "explain the vendor management system"
+4. **Use small token budgets** (1000-2000) for focused results
+5. **Use `indexa_symbol` with stable IDs** from previous tool calls for O(1) lookup
+6. **Re-index after major changes** — byte offsets shift after refactors
 
 ---
 
@@ -128,39 +106,5 @@ Index statistics. No parameters.
 | Variable | Description |
 |----------|-------------|
 | `INDEXA_DATA_DIR` | Override data directory |
-| `INDEXA_CONFIG` | Override config file path |
+| `INDEXA_CONFIG` | Override config file |
 | `INDEXA_DEBUG` | Enable debug logging |
-
----
-
-## Usage Tips
-
-1. **Always start with `indexa_context_bundle`.** It handles 80% of cases in a single call.
-2. **Use `indexa_symbol` for known IDs.** If you have an ID from a previous call, use it for O(1) lookup.
-3. **Use small token budgets.** 1000-2000 tokens is usually enough. Don't request 10K.
-4. **Use `indexa_references` before refactoring.** Check what breaks before changing a symbol.
-5. **Use `indexa_file` with `include_code: false` for orientation.** See what's in a file without loading all code.
-6. **Re-index after major changes.** Byte offsets shift after refactors.
-
----
-
-## Per-Project Config
-
-Create `.mcp.json` in the project root instead of global:
-
-```json
-{
-  "mcpServers": {
-    "indexa": {
-      "command": "node",
-      "args": ["D:/Project/Indexa/dist/src/mcp/stdio.js"]
-    }
-  }
-}
-```
-
----
-
-## Troubleshooting
-
-See [Troubleshooting](./troubleshooting.md).

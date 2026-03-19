@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { initProject } from './init';
 import { indexCommand, updateCommand } from './update';
-import { searchCommand, bundleCommand } from './search';
+import { searchCommand, bundleCommand, flowCommand, explainCommand } from './search';
 import { startServer } from '../src/server/index';
 
 const program = new Command();
@@ -11,7 +11,7 @@ const program = new Command();
 program
   .name('indexa')
   .description('Indexa — AST-based codebase indexing with semantic + structural retrieval')
-  .version('2.1.0');
+  .version('3.0.0');
 
 program
   .command('init')
@@ -58,6 +58,30 @@ program
   .option('--data-dir <path>', 'Custom data directory')
   .action(async (query, opts) => {
     await bundleCommand(query, {
+      tokenBudget: parseInt(opts.tokenBudget, 10),
+      dataDir: opts.dataDir,
+    });
+  });
+
+program
+  .command('flow <query>')
+  .description('Trace execution flow from a symbol or query')
+  .option('-d, --depth <number>', 'Traversal depth', '3')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action(async (query, opts) => {
+    await flowCommand(query, {
+      depth: parseInt(opts.depth, 10),
+      dataDir: opts.dataDir,
+    });
+  });
+
+program
+  .command('explain <query>')
+  .description('Generate a human-readable explanation of code')
+  .option('-b, --token-budget <number>', 'Token budget for analysis', '2000')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action(async (query, opts) => {
+    await explainCommand(query, {
       tokenBudget: parseInt(opts.tokenBudget, 10),
       dataDir: opts.dataDir,
     });

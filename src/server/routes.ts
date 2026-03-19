@@ -20,9 +20,11 @@ export function createRouter(
   const searchController = new SearchController(vectorDB, embedder);
   const indexController = new IndexController(config, vectorDB, metadataDB, embedder);
 
-  // Search & context
+  // Search, context, intelligence
   router.post('/search', searchController.search);
   router.post('/context-bundle', searchController.contextBundle);
+  router.post('/flow', searchController.flow);
+  router.post('/explain', searchController.explain);
 
   // Index operations
   router.post('/update', indexController.update);

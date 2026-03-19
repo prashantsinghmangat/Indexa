@@ -1,4 +1,4 @@
-# Indexa v2.1 — Quick Start
+# Indexa v3.0 — Quick Start
 
 Get up and running in under 2 minutes.
 
@@ -16,59 +16,43 @@ npm install
 npm run build
 ```
 
-> **PowerShell note:** Run commands separately. PowerShell does not support `&&`.
-
-## 2. Initialize
+## 2. Initialize & Index
 
 ```powershell
 node dist/cli/index.js init
-```
-
-## 3. Index Your Codebase
-
-```powershell
 node dist/cli/index.js index "D:\path\to\your\project"
 ```
 
-Example output:
-```
-Indexing complete in 39.18s
-  Files indexed: 1353
-  Chunks created: 12317
-  Data stored in: ./data
-```
+## 3. Context Bundle (PRIMARY)
 
-## 4. Context Bundle (PRIMARY)
-
-The most important command. Returns relevant symbols + dependencies within a token budget:
+The most important command — returns relevant symbols + dependencies + connections:
 
 ```powershell
 node dist/cli/index.js bundle "vendor service area" --token-budget 1500
 ```
 
-Output: 2-7 symbols with source code + their dependencies, all packed within 1500 tokens.
+## 4. Trace Execution Flow
 
-## 5. Search
+See how functions call each other across files:
 
 ```powershell
-# Smart auto-routing: identifiers → symbol lookup, short → keyword, else → hybrid
-node dist/cli/index.js search "VendorService"               # → symbol lookup
-node dist/cli/index.js search "vendor service"               # → BM25 keyword
-node dist/cli/index.js search "vendor service area logic"    # → hybrid
-
-# Token budget mode
-node dist/cli/index.js search "service" --token-budget 500
+node dist/cli/index.js flow "getVendorRatesByServiceArea"
 ```
 
-## 6. Start the API Server
+## 5. Explain Code
+
+Get a human-readable explanation:
 
 ```powershell
-node dist/cli/index.js serve
+node dist/cli/index.js explain "vendor management pricing"
 ```
 
-Test the primary endpoint:
+## 6. Search
+
 ```powershell
-curl -X POST http://localhost:3000/api/context-bundle -H "Content-Type: application/json" -d "{\"query\": \"vendor service\", \"tokenBudget\": 1500}"
+node dist/cli/index.js search "VendorService"          # → symbol lookup
+node dist/cli/index.js search "vendor service"          # → BM25 keyword
+node dist/cli/index.js search "vendor service logic"    # → hybrid
 ```
 
 ## 7. Use with Claude Code (MCP)
@@ -85,12 +69,11 @@ Add to `~/.mcp.json`:
 }
 ```
 
-Restart Claude Code. 8 tools available — `indexa_context_bundle` is the PRIMARY tool LLMs should use first.
+Restart Claude Code. 9 tools available — `indexa_context_bundle`, `indexa_flow`, and `indexa_explain` are the key intelligence tools.
 
 ## What's Next?
 
-- [CLI Reference](./cli-reference.md) — all commands and options
-- [API Reference](./api-reference.md) — REST endpoint details
-- [MCP Integration](./mcp-integration.md) — Claude Code setup and all 8 tools
-- [Configuration](./configuration.md) — customize file patterns, port, etc.
-- [Architecture](./architecture.md) — how it all works
+- [CLI Reference](./cli-reference.md) — all commands
+- [API Reference](./api-reference.md) — REST endpoints
+- [MCP Integration](./mcp-integration.md) — all 9 MCP tools
+- [Architecture](./architecture.md) — how the intelligence layer works

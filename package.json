@@ -1,7 +1,7 @@
 {
   "name": "indexa",
-  "version": "2.1.0",
-  "description": "Indexa — AST-based codebase indexing with semantic + structural retrieval via MCP. Query-driven context bundles, byte-offset retrieval, BM25 search, dependency graph, and smart query routing.",
+  "version": "3.0.0",
+  "description": "Indexa — Code intelligence via MCP. Context bundles, execution flow tracing, code explanation, BM25 + semantic search, byte-offset retrieval, dependency graphs, and LRU query cache.",
   "main": "dist/src/server/index.js",
   "bin": {
     "indexa": "dist/cli/index.js"

@@ -3,6 +3,7 @@ import { VectorDB } from '../src/storage/vector-db';
 import { Embedder } from '../src/indexer/embedder';
 import { HybridSearch } from '../src/retrieval/hybrid';
 import { GraphAnalysis } from '../src/retrieval/graph';
+import { FlowEngine, ExplainEngine } from '../src/intelligence';
 import { logger, readCodeAtOffset } from '../src/utils';
 
 /**
@@ -117,4 +118,87 @@ export async function bundleCommand(
   }
 
   console.log(`Tokens: ~${bundle.estimatedTokens} / ${tokenBudget}`);
+}
+
+/**
+ * CLI flow command — traces execution flow from a symbol or query.
+ */
+export async function flowCommand(
+  query: string,
+  options: { depth?: number; dataDir?: string }
+): Promise<void> {
+  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const depth = options.depth || 3;
+
+  const vectorDB = new VectorDB(dataDir);
+  const embedder = new Embedder();
+  const hybridSearch = new HybridSearch(vectorDB, embedder);
+  const flow = new FlowEngine(vectorDB, hybridSearch);
+
+  if (vectorDB.size === 0) {
+    logger.error('No indexed data found. Run "indexa index" first.');
+    return;
+  }
+
+  logger.info(`Tracing flow for: "${query}" (depth=${depth})`);
+
+  const result = await flow.trace(query, depth);
+
+  if (result.flow.length === 0) {
+    console.log('\nNo execution flow found.');
+    return;
+  }
+
+  console.log(`\nExecution flow from "${result.entry}" (${result.flow.length} steps):\n`);
+
+  for (const step of result.flow) {
+    const indent = '  '.repeat(step.step - 1);
+    const callsStr = step.calls.length > 0 ? ` → calls: ${step.calls.join(', ')}` : '';
+    console.log(`${indent}${step.step}. [${step.type}] ${step.name}${callsStr}`);
+    console.log(`${indent}   ${step.summary}`);
+    console.log(`${indent}   ${step.filePath}`);
+  }
+}
+
+/**
+ * CLI explain command — generates a human-readable explanation.
+ */
+export async function explainCommand(
+  query: string,
+  options: { tokenBudget?: number; dataDir?: string }
+): Promise<void> {
+  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const tokenBudget = options.tokenBudget || 2000;
+
+  const vectorDB = new VectorDB(dataDir);
+  const embedder = new Embedder();
+  const hybridSearch = new HybridSearch(vectorDB, embedder);
+  const graph = new GraphAnalysis(vectorDB);
+  const explain = new ExplainEngine(graph, hybridSearch);
+
+  if (vectorDB.size === 0) {
+    logger.error('No indexed data found. Run "indexa index" first.');
+    return;
+  }
+
+  logger.info(`Explaining: "${query}" (budget=${tokenBudget} tokens)`);
+
+  const result = await explain.explain(query, tokenBudget);
+
+  console.log(`\n## Explanation\n`);
+  console.log(result.explanation);
+
+  if (result.steps.length > 0) {
+    console.log(`\n## Steps\n`);
+    for (let i = 0; i < result.steps.length; i++) {
+      console.log(`  ${i + 1}. ${result.steps[i]}`);
+    }
+  }
+
+  if (result.symbolsUsed.length > 0) {
+    console.log(`\n## Symbols Analyzed (${result.symbolsUsed.length})\n`);
+    for (const sym of result.symbolsUsed) {
+      console.log(`  [${sym.type}] ${sym.name} — ${sym.summary}`);
+    }
+  }
 }

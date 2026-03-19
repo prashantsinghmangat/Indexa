@@ -55,9 +55,11 @@ export function startServer(configOverrides?: Partial<IndexaConfig>): void {
   app.get('/', (_req, res) => {
     res.json({
       name: 'Indexa',
-      version: '2.1.0',
+      version: '3.0.0',
       endpoints: [
-        'POST /api/context-bundle  ← PRIMARY: query → symbols + deps',
+        'POST /api/context-bundle  ← PRIMARY: query → symbols + deps + connections',
+        'POST /api/flow            ← trace execution flow across functions',
+        'POST /api/explain         ← human-readable code explanation',
         'POST /api/search',
         'POST /api/update',
         'GET  /api/file?path=',
