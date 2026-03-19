@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { initProject } from './init';
 import { indexCommand, updateCommand } from './update';
 import { searchCommand, bundleCommand, flowCommand, explainCommand } from './search';
+import { cleanCommand, statsCommand } from './clean';
 import { startServer } from '../src/server/index';
 
 const program = new Command();
@@ -85,6 +86,57 @@ program
       tokenBudget: parseInt(opts.tokenBudget, 10),
       dataDir: opts.dataDir,
     });
+  });
+
+program
+  .command('clean')
+  .description('Purge junk chunks (minified, storybook, vendor scripts, tests)')
+  .option('--data-dir <path>', 'Custom data directory')
+  .option('--dry-run', 'Show what would be removed without removing')
+  .option('--pattern <pattern>', 'Additional file path pattern to purge (repeatable)', (val: string, arr: string[]) => { arr.push(val); return arr; }, [] as string[])
+  .action(async (opts) => {
+    await cleanCommand({
+      dataDir: opts.dataDir,
+      dryRun: opts.dryRun,
+      patterns: opts.pattern,
+    });
+  });
+
+program
+  .command('health')
+  .description('Show index health report: chunk counts, types, junk detection')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action((opts) => {
+    statsCommand({ dataDir: opts.dataDir });
+  });
+
+program
+  .command('reindex <directory>')
+  .description('Full clean re-index: wipe old data → index → clean junk → report')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action(async (directory, opts) => {
+    const dataDir = opts.dataDir;
+
+    console.log('=== Step 1/4: Wiping old index ===');
+    const path = await import('path');
+    const fs = await import('fs');
+    const dir = dataDir || path.join(process.cwd(), 'data');
+    const embPath = path.join(dir, 'embeddings.json');
+    const metaPath = path.join(dir, 'metadata.json');
+    if (fs.existsSync(embPath)) fs.unlinkSync(embPath);
+    if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath);
+    console.log('Old index cleared.\n');
+
+    console.log('=== Step 2/4: Indexing codebase ===');
+    await indexCommand(directory, { dataDir });
+    console.log('');
+
+    console.log('=== Step 3/4: Cleaning junk ===');
+    await cleanCommand({ dataDir });
+    console.log('');
+
+    console.log('=== Step 4/4: Health report ===');
+    statsCommand({ dataDir });
   });
 
 program

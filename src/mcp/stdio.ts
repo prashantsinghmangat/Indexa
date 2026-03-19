@@ -17,10 +17,25 @@ import { readCodeAtOffset } from '../utils';
 
 // --- Config ---
 
-const DATA_DIR = process.env.INDEXA_DATA_DIR
+// Accept data dir as CLI arg: node stdio.js --data-dir /path/to/data
+function parseArgs(): { dataDir?: string; config?: string } {
+  const args = process.argv.slice(2);
+  const result: { dataDir?: string; config?: string } = {};
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--data-dir' && args[i + 1]) result.dataDir = args[++i];
+    if (args[i] === '--config' && args[i + 1]) result.config = args[++i];
+  }
+  return result;
+}
+
+const cliArgs = parseArgs();
+
+const DATA_DIR = cliArgs.dataDir
+  || process.env.INDEXA_DATA_DIR
   || path.resolve(__dirname, '..', '..', 'data');
 
-const CONFIG_PATH = process.env.INDEXA_CONFIG
+const CONFIG_PATH = cliArgs.config
+  || process.env.INDEXA_CONFIG
   || path.resolve(__dirname, '..', '..', 'config', 'indexa.config.json');
 
 function loadConfig(): IndexaConfig {
@@ -32,7 +47,7 @@ function loadConfig(): IndexaConfig {
     defaultTopK: 5,
     defaultTokenBudget: 4000,
     includePatterns: ['*.ts', '*.tsx', '*.js', '*.jsx'],
-    excludePatterns: ['node_modules', 'dist', '.git', '*.test.*', '*.spec.*'],
+    excludePatterns: ['node_modules', 'dist', '.git', '*.test.*', '*.spec.*', '*.stories.*', 'public/react-shell/assets', 'public/Scripts', '*.min.js', '*.bundle.js', 'vendor.js', 'polyfills.js', 'angular-mocks', 'e2e'],
   };
 
   if (fs.existsSync(CONFIG_PATH)) {
@@ -70,7 +85,7 @@ server.tool(
   'PRIMARY TOOL. Returns relevant code symbols packed within a token budget, with dependencies and connections between symbols. Use this first for any code question.',
   {
     query: z.string().describe('What you are looking for'),
-    tokenBudget: z.number().min(100).default(2000).describe('Max tokens (1000-3000 for focused results)'),
+    tokenBudget: z.coerce.number().min(100).default(2000).describe('Max tokens (1000-3000 for focused results)'),
   },
   async ({ query, tokenBudget }) => {
     const cacheKey = QueryCache.key('bundle', { query, tokenBudget });
@@ -131,7 +146,7 @@ server.tool(
   'Trace execution flow from a symbol or query. Shows the call chain across functions and files — what calls what, in order.',
   {
     query: z.string().describe('Symbol name, ID, or search query to trace from'),
-    depth: z.number().min(1).max(6).default(3).describe('How many levels deep to trace'),
+    depth: z.coerce.number().min(1).max(6).default(3).describe('How many levels deep to trace'),
   },
   async ({ query, depth }) => {
     const cacheKey = QueryCache.key('flow', { query, depth });
@@ -168,7 +183,7 @@ server.tool(
   'Explain what an area of code does. Returns a human-readable explanation with step-by-step breakdown, built from actual code — no hallucination.',
   {
     query: z.string().describe('What to explain (e.g. "vendor service area", "authentication flow")'),
-    tokenBudget: z.number().min(100).default(2000).describe('How much code to analyze'),
+    tokenBudget: z.coerce.number().min(100).default(2000).describe('How much code to analyze'),
   },
   async ({ query, tokenBudget }) => {
     const cacheKey = QueryCache.key('explain', { query, tokenBudget });
@@ -211,8 +226,8 @@ server.tool(
   'Search the indexed codebase. Auto-routes by query type. Use indexa_context_bundle for code + deps, indexa_explain for understanding.',
   {
     query: z.string().describe('Search query'),
-    topK: z.number().min(1).max(50).default(5).describe('Max results'),
-    tokenBudget: z.number().min(0).default(0).describe('Token budget (0 = use topK)'),
+    topK: z.coerce.number().min(1).max(50).default(5).describe('Max results'),
+    tokenBudget: z.coerce.number().min(0).default(0).describe('Token budget (0 = use topK)'),
   },
   async ({ query, topK, tokenBudget }) => {
     const budget = tokenBudget > 0 ? tokenBudget : undefined;

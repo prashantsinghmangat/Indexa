@@ -69,7 +69,7 @@ export class KeywordSearch {
       ...nameTokens, ...nameTokens, ...nameTokens, // 3x name weight
       ...typeTokens, ...typeTokens,                  // 2x type weight
       ...summaryTokens,                              // 1x summary
-      ...fileTokens,                                 // 1x file path
+      ...fileTokens, ...fileTokens,                  // 2x file path weight
     ];
   }
 }

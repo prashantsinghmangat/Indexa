@@ -4,13 +4,14 @@ import * as path from 'path';
 import * as os from 'os';
 import { ChunkType, SymbolId } from '../types';
 
-/** Simple logger with levels */
+/** Simple logger with levels.
+ *  ALL output goes to stderr so stdout stays clean for MCP JSON-RPC. */
 export const logger = {
-  info: (msg: string, ...args: unknown[]) => console.log(`[INFO] ${msg}`, ...args),
-  warn: (msg: string, ...args: unknown[]) => console.warn(`[WARN] ${msg}`, ...args),
+  info: (msg: string, ...args: unknown[]) => console.error(`[INFO] ${msg}`, ...args),
+  warn: (msg: string, ...args: unknown[]) => console.error(`[WARN] ${msg}`, ...args),
   error: (msg: string, ...args: unknown[]) => console.error(`[ERROR] ${msg}`, ...args),
   debug: (msg: string, ...args: unknown[]) => {
-    if (process.env.INDEXA_DEBUG) console.log(`[DEBUG] ${msg}`, ...args);
+    if (process.env.INDEXA_DEBUG) console.error(`[DEBUG] ${msg}`, ...args);
   },
 };
 
@@ -242,7 +243,21 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 const BM25_K1 = 1.5;
 const BM25_B = 0.75;
 
-/** Tokenize text for BM25: split camelCase/snake_case, lowercase, filter short tokens */
+/** Common stop words that add noise to code search */
+const STOP_WORDS = new Set([
+  'the', 'is', 'at', 'which', 'on', 'in', 'for', 'to', 'of', 'and', 'or',
+  'it', 'an', 'as', 'by', 'be', 'this', 'that', 'from', 'with', 'are',
+  'was', 'were', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'not',
+  'but', 'if', 'no', 'so', 'up', 'out', 'about', 'into', 'can', 'will',
+  'all', 'how', 'what', 'when', 'where', 'why', 'who',
+  // Code-generic terms that match too broadly
+  'system', 'data', 'item', 'items', 'list', 'type', 'value', 'values',
+  'result', 'results', 'response', 'request', 'error', 'status',
+  'get', 'set', 'new', 'function', 'class', 'module', 'export', 'import',
+  'default', 'return', 'const', 'let', 'var',
+]);
+
+/** Tokenize text for BM25: split camelCase/snake_case, lowercase, filter stop words */
 export function bm25Tokenize(text: string): string[] {
   return text
     .replace(/([a-z])([A-Z])/g, '$1 $2') // camelCase split
@@ -250,7 +265,7 @@ export function bm25Tokenize(text: string): string[] {
     .toLowerCase()
     .replace(/[^a-z0-9$\s]/g, ' ')
     .split(/\s+/)
-    .filter(t => t.length > 1);
+    .filter(t => t.length > 1 && !STOP_WORDS.has(t));
 }
 
 /** Compute BM25 score for a document against query terms */

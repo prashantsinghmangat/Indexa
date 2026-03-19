@@ -19,7 +19,7 @@ function loadConfig(projectRoot: string): IndexaConfig {
     defaultTopK: 5,
     defaultTokenBudget: 4000,
     includePatterns: ['*.ts', '*.tsx', '*.js', '*.jsx'],
-    excludePatterns: ['node_modules', 'dist', '.git', '*.test.*', '*.spec.*'],
+    excludePatterns: ['node_modules', 'dist', '.git', '*.test.*', '*.spec.*', '*.stories.*', 'public/react-shell/assets', 'public/Scripts', '*.min.js', '*.bundle.js', 'vendor.js', 'polyfills.js', 'angular-mocks', 'e2e'],
   };
 
   if (fs.existsSync(configPath)) {

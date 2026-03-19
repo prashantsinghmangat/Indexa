@@ -1,6 +1,7 @@
 import * as crypto from 'crypto';
 import { EmbeddingProvider } from '../types';
 import { logger } from '../utils';
+import { LocalEmbeddingProvider } from './local-embedder';
 
 /**
  * Default embedding provider using deterministic hash-based vectors.
@@ -55,6 +56,26 @@ export class HashEmbeddingProvider implements EmbeddingProvider {
 }
 
 /**
+ * Create the best available embedding provider.
+ * Prefers local ML model (Transformers.js), falls back to hash-based.
+ */
+export function createProvider(mode?: 'local' | 'hash'): EmbeddingProvider {
+  if (mode === 'hash') {
+    logger.info('Using hash-based embeddings (fast, no ML)');
+    return new HashEmbeddingProvider();
+  }
+
+  // Default: try local ML model
+  try {
+    logger.info('Using local ML embeddings (Transformers.js, 384-dim)');
+    return new LocalEmbeddingProvider();
+  } catch {
+    logger.warn('Local embeddings unavailable, falling back to hash-based');
+    return new HashEmbeddingProvider();
+  }
+}
+
+/**
  * Embedder that wraps any EmbeddingProvider.
  * Manages embedding generation for code chunks.
  */
@@ -62,7 +83,7 @@ export class Embedder {
   private provider: EmbeddingProvider;
 
   constructor(provider?: EmbeddingProvider) {
-    this.provider = provider || new HashEmbeddingProvider();
+    this.provider = provider || createProvider();
   }
 
   /** Get the embedding dimension */

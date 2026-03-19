@@ -13,7 +13,12 @@ Located at `config/indexa.config.json`:
   "defaultTopK": 5,
   "defaultTokenBudget": 4000,
   "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
-  "excludePatterns": ["node_modules", "dist", ".git", "*.test.*", "*.spec.*"]
+  "excludePatterns": [
+    "node_modules", "dist", ".git",
+    "*.test.*", "*.spec.*", "*.stories.*",
+    "public/react-shell/assets", "public/Scripts",
+    "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js"
+  ]
 }
 ```
 
@@ -22,39 +27,56 @@ Located at `config/indexa.config.json`:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `projectRoot` | string | `"."` | Root directory of the project to index |
-| `dataDir` | string | `"./data"` | Directory for storing index data |
-| `port` | number | `3000` | Port for the REST API server |
-| `embeddingDim` | number | `128` | Dimension of embedding vectors |
-| `defaultTopK` | number | `5` | Default number of search results |
-| `defaultTokenBudget` | number | `4000` | Default token budget for context bundles |
+| `dataDir` | string | `"./data"` | Directory for index data |
+| `port` | number | `3000` | Port for REST API server |
+| `embeddingDim` | number | `128` | Embedding vector dimensions |
+| `defaultTopK` | number | `5` | Default search results |
+| `defaultTokenBudget` | number | `4000` | Default token budget for context bundle |
 | `includePatterns` | string[] | `["*.ts", "*.tsx", "*.js", "*.jsx"]` | File patterns to index |
-| `excludePatterns` | string[] | `["node_modules", "dist", ".git", "*.test.*", "*.spec.*"]` | Patterns to skip |
+| `excludePatterns` | string[] | *(see above)* | Patterns to skip |
 
-## File Patterns
+## Exclude Patterns
 
-### includePatterns
+These patterns prevent noise in the index:
 
-Glob-style patterns for files to index:
+| Pattern | Why |
+|---------|-----|
+| `node_modules` | Third-party dependencies |
+| `dist` | Compiled output |
+| `.git` | Git internals |
+| `*.test.*`, `*.spec.*` | Test files — contain mocks and assertions, not business logic |
+| `*.stories.*` | Storybook files — contain component demos, pollute search |
+| `public/react-shell/assets` | Vite-minified bundles — single-letter function names match everything |
+| `public/Scripts` | Vendor libraries (Angular, jQuery, etc.) — huge, noisy |
+| `*.min.js`, `*.bundle.js` | Other minified/bundled files |
+| `vendor.js`, `polyfills.js` | Framework polyfills |
 
+### Adding custom excludes
+
+For your project, you may also want to exclude:
 ```json
-{
-  "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx", "*.html", "*.scss"]
-}
+"excludePatterns": [
+  ...,
+  "coverage",
+  ".next",
+  "generated",
+  "__mocks__",
+  "*.d.ts"
+]
 ```
 
-### excludePatterns
+After changing patterns, run a full re-index. See [Re-indexing Guide](./reindexing.md).
 
-Patterns for files and directories to skip:
+## MCP Server Arguments
 
-```json
-{
-  "excludePatterns": [
-    "node_modules", "dist", ".git",
-    "*.test.*", "*.spec.*", "*.d.ts",
-    "coverage", ".next"
-  ]
-}
-```
+The MCP server (`src/mcp/stdio.ts`) accepts CLI arguments:
+
+| Argument | Description |
+|----------|-------------|
+| `--data-dir <path>` | Absolute path to data directory (overrides config + env) |
+| `--config <path>` | Path to config file |
+
+Priority: CLI args > env vars > config file > defaults.
 
 ## Environment Variables
 
@@ -62,37 +84,43 @@ Patterns for files and directories to skip:
 |----------|-----------|-------------|
 | `INDEXA_DATA_DIR` | `dataDir` | Data storage directory |
 | `INDEXA_CONFIG` | — | Path to config file |
-| `INDEXA_DEBUG` | — | Enable debug logging (set to any value) |
+| `INDEXA_DEBUG` | — | Enable debug logging (any value) |
+
+## Search Scoring Weights
+
+The hybrid search uses these weights:
+
+| Component | Weight | What it does |
+|-----------|--------|-------------|
+| Semantic (cosine similarity) | 15% | Vector similarity via hash-based embeddings |
+| BM25 keyword | 45% | Term frequency × inverse document frequency |
+| Name match | 20% | Query tokens matching symbol names |
+| Path match | 20% | Query tokens matching file path segments |
+
+These weights are optimized for hash-based embeddings (which are unreliable for semantic meaning). If you switch to real embeddings (OpenAI, local model), increase semantic weight and decrease keyword weight.
+
+### Stop Words
+
+Common terms are filtered from BM25 to reduce noise:
+- English: `the`, `is`, `for`, `to`, `of`, `and`, `or`, ...
+- Code-generic: `system`, `data`, `item`, `list`, `type`, `value`, `result`, `get`, `set`, `function`, `class`, `module`, ...
+
+These are defined in `src/utils/index.ts`.
 
 ## Data Storage
 
-Index data is stored as two JSON files:
+| File | Size | Contents |
+|------|------|---------|
+| `data/embeddings.json` | 10-50 MB | Chunk metadata + embedding vectors (no inline code) |
+| `data/metadata.json` | < 1 MB | File path → content hash mapping |
 
-| File | Contents |
-|------|---------|
-| `data/embeddings.json` | Chunk metadata + embeddings (no code stored) |
-| `data/metadata.json` | File path to hash mapping for change detection |
+Code is NOT stored in the index. It's read on demand from source files via byte offsets.
 
-### v2 Index Format
-
-Code is NOT stored in the index. Each chunk stores:
-- `byteOffset` + `byteLength` for O(1) code retrieval from source files
-- `contentHash` for drift detection
-- `imports` for graph analysis
-
-This makes the index ~5x smaller than v1.
-
-### Multi-Project Setup
-
-```powershell
-node dist/cli/index.js index "D:\ProjectA" --data-dir ./data-projectA
-node dist/cli/index.js index "D:\ProjectB" --data-dir ./data-projectB
-node dist/cli/index.js search "query" --data-dir ./data-projectA
-```
+Both files are written atomically (write to `.tmp` → rename) to prevent corruption.
 
 ## Pluggable Embeddings
 
-The default hash-based embedder works offline with no API keys. To use real embeddings:
+The default hash-based embedder works offline with no API keys. To use real embeddings, implement the `EmbeddingProvider` interface:
 
 ```typescript
 import { EmbeddingProvider } from './src/types';
@@ -107,25 +135,19 @@ class OpenAIEmbeddings implements EmbeddingProvider {
         'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model: 'text-embedding-3-small', input: text }),
+      body: JSON.stringify({
+        model: 'text-embedding-3-small',
+        input: text,
+      }),
     });
     const data = await response.json();
     return data.data[0].embedding;
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ model: 'text-embedding-3-small', input: texts }),
-    });
-    const data = await response.json();
-    return data.data.map((d: any) => d.embedding);
+    // Batch API call
   }
 }
 ```
 
-> **Note:** When switching embedding providers, you must re-index the entire codebase.
+> **Note:** Switching embedding providers requires a full re-index. Embeddings from different providers are not compatible.

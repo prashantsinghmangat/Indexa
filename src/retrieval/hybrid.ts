@@ -5,10 +5,16 @@ import { VectorDB } from '../storage/vector-db';
 import { Embedder } from '../indexer/embedder';
 import { logger, estimateTokens, packByTokenBudget, bm25Tokenize, detectQueryIntent } from '../utils';
 
-/** Hybrid scoring weights */
-const SEMANTIC_WEIGHT = 0.5;
-const KEYWORD_WEIGHT = 0.3;
-const NAME_MATCH_WEIGHT = 0.2;
+/** Hybrid scoring weights — auto-adjusted based on embedding quality.
+ * Real embeddings (384-dim): semantic-heavy. Hash (128-dim): keyword-heavy. */
+function getWeights(embeddingDim: number) {
+  if (embeddingDim >= 256) {
+    // Real embeddings — semantic actually works
+    return { semantic: 0.45, keyword: 0.25, name: 0.15, path: 0.15 };
+  }
+  // Hash-based embeddings — keyword-dominant
+  return { semantic: 0.15, keyword: 0.45, name: 0.20, path: 0.20 };
+}
 
 /**
  * Hybrid search with query routing.
@@ -19,11 +25,13 @@ export class HybridSearch {
   private semanticSearch: SemanticSearch;
   private keywordSearch: KeywordSearch;
   private vectorDB: VectorDB;
+  private weights: { semantic: number; keyword: number; name: number; path: number };
 
   constructor(vectorDB: VectorDB, embedder?: Embedder) {
     this.vectorDB = vectorDB;
     this.semanticSearch = new SemanticSearch(vectorDB, embedder);
     this.keywordSearch = new KeywordSearch(vectorDB);
+    this.weights = getWeights(embedder?.dimension ?? 128);
   }
 
   /** Smart search: auto-routes based on query intent */
@@ -77,7 +85,7 @@ export class HybridSearch {
 
   /** Full hybrid search: semantic + keyword + name match */
   private async hybridSearch(query: string, topK: number): Promise<SearchResult[]> {
-    const candidateK = Math.max(topK * 3, 20);
+    const candidateK = Math.max(topK * 5, 50);
 
     const [semanticResults, keywordResults] = await Promise.all([
       this.semanticSearch.search(query, candidateK),
@@ -125,9 +133,10 @@ export class HybridSearch {
     // Compute final hybrid scores
     const hybridResults: SearchResult[] = Array.from(scoreMap.values()).map(entry => ({
       chunk: entry.chunk,
-      score: entry.semanticScore * SEMANTIC_WEIGHT
-           + entry.keywordScore * KEYWORD_WEIGHT
-           + entry.nameScore * NAME_MATCH_WEIGHT,
+      score: entry.semanticScore * this.weights.semantic
+           + entry.keywordScore * this.weights.keyword
+           + entry.nameScore * this.weights.name
+           + this.computePathScore(entry.chunk, queryTokens) * this.weights.path,
       matchType: 'hybrid' as const,
     }));
 
@@ -176,6 +185,29 @@ export class HybridSearch {
       if (nameTokens.some(nt => nt === qt)) {
         matches += 1.0;
       } else if (nameTokens.some(nt => nt.includes(qt) || qt.includes(nt))) {
+        matches += 0.5;
+      }
+    }
+
+    return Math.min(matches / queryTokens.length, 1.0);
+  }
+
+  /** Compute file path match score [0, 1] against query tokens */
+  private computePathScore(chunk: IndexedChunk, queryTokens: string[]): number {
+    if (queryTokens.length === 0) return 0;
+
+    // Tokenize the file path: split on /, \, ., -, _ and lowercase
+    const pathParts = chunk.filePath
+      .replace(/\\/g, '/')
+      .split(/[\/.\-_]/)
+      .map(p => p.toLowerCase())
+      .filter(p => p.length > 1);
+
+    let matches = 0;
+    for (const qt of queryTokens) {
+      if (pathParts.some(p => p === qt)) {
+        matches += 1.0;
+      } else if (pathParts.some(p => p.includes(qt) || qt.includes(p))) {
         matches += 0.5;
       }
     }

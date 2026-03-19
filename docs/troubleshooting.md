@@ -16,98 +16,161 @@ npm run build
 
 ---
 
-### `npx mcp` installs a random package
+### Build fails
 
 ```
-Need to install the following packages: mcp@1.4.2
+error TS2305: Module has no exported member
 ```
 
-**Fix:** Use `node` directly:
+**Fix:** Delete `dist/` and rebuild:
 ```powershell
-node dist/cli/index.js search "query"
+rm -r dist
+npm run build
 ```
 
 ---
 
-### Index shows 0 chunks created
-
-```
-Indexing complete in 1.06s
-  Files indexed: 1353
-  Chunks created: 0
-```
-
-**Cause:** Files were already indexed with the same content hash. Indexa skips unchanged files.
-
-**To force re-index:**
-```powershell
-rm data/embeddings.json
-rm data/metadata.json
-node dist/cli/index.js index "D:\path\to\project"
-```
-
----
-
-### Code preview shows empty or wrong code
-
-**Cause:** Source files have changed since indexing. Byte offsets no longer match.
-
-**Fix:** Re-index:
-```powershell
-rm data/embeddings.json data/metadata.json
-node dist/cli/index.js index "D:\path\to\project"
-```
-
-> Use `contentHash` to detect drift: the hash stored in the index can be compared against the current source to verify integrity.
-
----
-
-### No results found for search
-
-**Possible causes:**
-1. Index is empty — run `indexa index` first
-2. Query too specific — try broader terms
-3. Data directory mismatch — check `--data-dir`
-
----
-
-### MCP server not appearing in Claude Code
+### MCP tools not appearing in Claude Code
 
 **Checklist:**
-1. Verify config exists:
+1. Verify `~/.mcp.json` exists:
    ```powershell
    cat ~/.mcp.json
    ```
-
 2. Verify compiled file exists:
    ```powershell
    ls D:\Project\Indexa\dist\src\mcp\stdio.js
    ```
-
-3. Test MCP server manually:
+3. Verify Claude Code settings:
    ```powershell
-   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | node D:\Project\Indexa\dist\src\mcp\stdio.js
+   cat ~/.claude/settings.local.json
    ```
-
-   Should return JSON with `"serverInfo":{"name":"indexa","version":"2.0.0"}`.
-
-4. **Restart Claude Code** — MCP servers load at session start.
+   Should contain: `"enabledMcpjsonServers": ["indexa"]`
+4. **Restart Claude Code** — MCP servers load at session start only
 
 ---
 
-### MCP server errors
+### MCP connected but shows 0 chunks
 
-**Enable debug logging:**
+**Cause:** The `--data-dir` argument is missing or the data files don't exist.
+
+**Fix:** Ensure `.mcp.json` has the `--data-dir` argument:
 ```json
 {
   "mcpServers": {
     "indexa": {
       "command": "node",
-      "args": ["D:/Project/Indexa/dist/src/mcp/stdio.js"],
-      "env": { "INDEXA_DEBUG": "1" }
+      "args": [
+        "D:/Project/Indexa/dist/src/mcp/stdio.js",
+        "--data-dir",
+        "D:/Project/Indexa/data"
+      ]
     }
   }
 }
+```
+
+Verify data files exist:
+```powershell
+ls D:\Project\Indexa\data\embeddings.json
+ls D:\Project\Indexa\data\metadata.json
+```
+
+---
+
+### MCP error: `[INFO]` lines corrupting protocol
+
+**Cause:** Logger was writing to stdout, corrupting MCP JSON-RPC.
+
+**Fix:** Already fixed in v3.0 — all logger output goes to stderr via `console.error()`. Rebuild:
+```powershell
+npm run build
+```
+
+---
+
+### MCP error: Input validation error (tokenBudget)
+
+```
+Invalid arguments: expected number, received string
+```
+
+**Cause:** Claude sends string instead of number for optional parameters.
+
+**Fix:** Already fixed — all numeric params use `z.coerce.number()`. Rebuild:
+```powershell
+npm run build
+```
+
+---
+
+### Claude ignores Indexa and uses Explore/Grep instead
+
+**Cause:** The Indexa instructions in CLAUDE.md are not at the top, or are too polite.
+
+**Fix:** Move the Indexa section to the **very first thing** in CLAUDE.md, marked as MANDATORY:
+```markdown
+## MANDATORY: Use Indexa MCP Tools First
+
+**RULE: Before using Explore, Grep, Read, or Bash to understand code, you MUST call Indexa MCP tools first.**
+...
+```
+
+Instructions at the top of CLAUDE.md have highest priority. Buried instructions (line 100+) get deprioritized.
+
+---
+
+### Index shows 0 new chunks on re-index
+
+**Normal behavior.** Files are unchanged — content hashes match. The index is already up to date.
+
+**To force full re-index:**
+```powershell
+del data\embeddings.json
+del data\metadata.json
+node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
+```
+
+---
+
+### Search returns irrelevant results (noise)
+
+**Common causes:**
+1. **Minified build artifacts indexed** — single-letter function names (`e`, `s`, `v`) match everything
+2. **Storybook/test files indexed** — `Search` from UiIcon.stories.tsx matches "search" queries
+3. **Vendor libraries indexed** — angular-resource.js, jQuery, etc.
+
+**Fix:** Update `config/indexa.config.json` exclude patterns:
+```json
+"excludePatterns": [
+  "node_modules", "dist", ".git",
+  "*.test.*", "*.spec.*", "*.stories.*",
+  "public/react-shell/assets",
+  "public/Scripts",
+  "*.min.js", "*.bundle.js"
+]
+```
+
+Then purge existing junk and re-index:
+```powershell
+node -e "const {VectorDB}=require('./dist/src/storage/vector-db');const db=new VectorDB('./data');let r=0;db.getAll().forEach(c=>{if(c.filePath.includes('pattern/to/remove')){db.remove(c.id);r++}});db.save();console.log('Removed',r)"
+```
+
+---
+
+### Windows: `cd D:\path` doesn't change directory
+
+**Cause:** In CMD, `cd` doesn't change drives.
+
+**Fix:**
+```cmd
+D:
+cd \SafeGuard\SPINext-App-SPIGlass
+```
+
+Or:
+```cmd
+cd /d D:\SafeGuard\SPINext-App-SPIGlass
 ```
 
 ---
@@ -125,29 +188,40 @@ node dist/cli/index.js serve --port 8080
 
 ---
 
-### Large codebase — slow indexing
+### Large embeddings.json (>100MB)
 
-**Tuning:**
-1. Narrow `includePatterns` to only needed files
-2. Add more `excludePatterns` (generated files, vendor code)
-3. Index specific subdirectories:
-   ```powershell
-   node dist/cli/index.js index "D:\project\src"
-   ```
+**Mitigations:**
+1. Narrow `includePatterns` to only needed file types
+2. Add more `excludePatterns` (generated code, vendor libs)
+3. Index specific subdirectories instead of the entire project
+4. Purge junk entries (see "Search returns irrelevant results")
 
 ---
 
-### Embeddings file too large
+## Diagnostic Commands
 
-v2 stores no code in the index (only metadata + embeddings), so this is much less of an issue than v1. For very large codebases (>30K chunks):
-- Index only the directories you need
-- Exclude generated/vendored code
-- Reduce embedding dimension in config (e.g., 64)
+### Test MCP server manually
 
----
+```powershell
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | node D:\Project\Indexa\dist\src\mcp\stdio.js --data-dir D:\Project\Indexa\data 2>nul
+```
 
-## Getting Help
+Should return clean JSON (no `[INFO]` lines).
 
-1. Check the [Architecture](./architecture.md) doc
-2. Enable debug logging with `INDEXA_DEBUG=1`
-3. File an issue with the error message and steps to reproduce
+### Check index contents
+
+```powershell
+node dist/cli/index.js search "test" --top-k 3 --data-dir ./data
+```
+
+### Check chunk distribution
+
+```powershell
+node -e "const {VectorDB}=require('./dist/src/storage/vector-db');const db=new VectorDB('./data');const t={};db.getAll().forEach(c=>t[c.type]=(t[c.type]||0)+1);console.log('Total:',db.size);console.log(JSON.stringify(t,null,2))"
+```
+
+### Check for junk entries
+
+```powershell
+node -e "const {VectorDB}=require('./dist/src/storage/vector-db');const db=new VectorDB('./data');const junk=db.getAll().filter(c=>c.name.length<=2);console.log('Single/double-letter names (likely minified):',junk.length);junk.slice(0,10).forEach(c=>console.log(' ',c.filePath.substring(0,80),c.name))"
+```

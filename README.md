@@ -4,48 +4,32 @@ Code intelligence via the Model Context Protocol (MCP). Not just search — Inde
 
 Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 17). Returns minimal, relevant code — never full files.
 
-## What's New in v3.0: Intelligence Layer
+## What's New in v3.0
 
-- **`indexa_flow`** — Trace execution flow across functions/files. Shows call chains with depth control
-- **`indexa_explain`** — Human-readable explanation of code areas. Step-by-step breakdown from actual symbols — no hallucination
-- **Context stitching** — Context bundles now include `connections` showing how symbols relate (`calls`, `imports`, `depends_on`)
-- **LRU query cache** — Repeated queries hit cache (100 entries, 5min TTL). Invalidated on re-index
-- **Smart summaries** — `function findVendors (query) → VendorDTO[] [15L] — finds vendors`
-
-## The Primary Tool: Context Bundle
-
-```powershell
-node dist/cli/index.js bundle "vendor service area" --token-budget 1500
-```
-
-Returns symbols + source code + dependencies + connections between them, all within token budget. This is what LLMs should call first.
-
-## Intelligence Tools
-
-```powershell
-# Trace execution flow: what calls what
-node dist/cli/index.js flow "getVendorRatesByServiceArea"
-
-# Explain code in plain English
-node dist/cli/index.js explain "vendor management pricing"
-
-# Context bundle with connections
-node dist/cli/index.js bundle "authentication flow" --token-budget 2000
-```
+- **`indexa_context_bundle`** — PRIMARY tool. Returns symbols + code + dependencies + connections within a token budget
+- **`indexa_flow`** — Trace execution flow across functions/files with depth control
+- **`indexa_explain`** — Human-readable code explanation from actual symbols
+- **Context stitching** — Connections between symbols: `calls`, `imports`, `depends_on`
+- **LRU query cache** — 100 entries, 5min TTL. Auto-invalidated on re-index
+- **Byte-offset retrieval** — Code read from source files via O(1) seek, not stored in index
+- **Stable symbol IDs** — `filePath::name#type`, human-readable and bookmarkable
+- **BM25 keyword search** — With stop-word filtering and path matching
+- **Cleaned index** — Auto-excludes minified builds, storybook files, vendor scripts
 
 ## Quick Start
 
 ```powershell
+cd D:\Project\Indexa
 npm install
 npm run build
 node dist/cli/index.js init
-node dist/cli/index.js index "D:\path\to\your\project"
-node dist/cli/index.js bundle "vendor service"
+node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass"
+node dist/cli/index.js search "vendor pricing"
 ```
 
-See [Quick Start Guide](docs/quick-start.md).
+See [Quick Start Guide](docs/quick-start.md) for full details.
 
-## Use with Claude Code
+## Use with Claude Code (MCP)
 
 Add to `~/.mcp.json`:
 
@@ -54,13 +38,19 @@ Add to `~/.mcp.json`:
   "mcpServers": {
     "indexa": {
       "command": "node",
-      "args": ["D:/Project/Indexa/dist/src/mcp/stdio.js"]
+      "args": [
+        "D:/Project/Indexa/dist/src/mcp/stdio.js",
+        "--data-dir",
+        "D:/Project/Indexa/data"
+      ]
     }
   }
 }
 ```
 
-Restart Claude Code. 9 tools available:
+Also add a project-level `.mcp.json` in the target project root (same content) for project-scoped access.
+
+Restart Claude Code. **9 tools** become available:
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -71,20 +61,66 @@ Restart Claude Code. 9 tools available:
 | 5 | `indexa_symbol` | O(1) lookup by stable ID or name |
 | 6 | `indexa_file` | File outline or full code |
 | 7 | `indexa_references` | Find usages + blast radius |
-| 8 | `indexa_index` | Index a directory |
+| 8 | `indexa_index` | Index/re-index a directory |
 | 9 | `indexa_stats` | Index stats + cache status |
+
+See [MCP Integration Guide](docs/mcp-integration.md) for CLAUDE.md setup and usage tips.
+
+## Indexing & Re-indexing
+
+### First-time index
+
+```powershell
+node dist/cli/index.js index "D:\path\to\your\project"
+```
+
+### After code changes (incremental)
+
+```powershell
+# Option 1: CLI — hash-based, skips unchanged files
+node dist/cli/index.js index "D:\path\to\your\project" --data-dir ./data
+
+# Option 2: Git-based — only re-indexes files changed since last commit
+node dist/cli/index.js update --data-dir ./data
+
+# Option 3: From Claude Code — ask Claude directly
+"Use indexa_index to re-index D:\SafeGuard\SPINext-App-SPIGlass"
+```
+
+### After switching branches
+
+Run a full re-index (it still skips unchanged files):
+```powershell
+node dist/cli/index.js index "D:\path\to\your\project" --data-dir ./data
+```
+
+### What gets indexed
+
+Controlled by `config/indexa.config.json`:
+```json
+{
+  "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+  "excludePatterns": [
+    "node_modules", "dist", ".git",
+    "*.test.*", "*.spec.*", "*.stories.*",
+    "public/react-shell/assets", "public/Scripts",
+    "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js"
+  ]
+}
+```
+
+See [Configuration](docs/configuration.md) for all options.
 
 ## CLI Commands
 
 ```powershell
-node dist/cli/index.js init                              # Initialize
-node dist/cli/index.js index "D:\path\to\project"        # Full index
-node dist/cli/index.js update                             # Incremental (git)
-node dist/cli/index.js bundle "query" -b 1500             # Context bundle
-node dist/cli/index.js flow "symbolName" -d 3             # Execution flow
-node dist/cli/index.js explain "query" -b 2000            # Code explanation
-node dist/cli/index.js search "query"                     # Search
+node dist/cli/index.js init                              # Initialize config + data dirs
+node dist/cli/index.js index "D:\path\to\project"        # Full index (skips unchanged)
+node dist/cli/index.js update                             # Incremental via git diff
+node dist/cli/index.js search "query"                     # Hybrid search
+node dist/cli/index.js search "query" --top-k 10          # More results
 node dist/cli/index.js serve                               # REST API on :3000
+node dist/cli/index.js serve --port 8080                   # Custom port
 ```
 
 ## API Endpoints
@@ -109,11 +145,11 @@ node dist/cli/index.js serve                               # REST API on :3000
 | Doc | Description |
 |-----|-------------|
 | [Quick Start](docs/quick-start.md) | Get up and running in 2 minutes |
-| [Architecture](docs/architecture.md) | System design, intelligence layer, data flow |
-| [CLI Reference](docs/cli-reference.md) | All commands including flow and explain |
-| [API Reference](docs/api-reference.md) | REST endpoint specs |
-| [MCP Integration](docs/mcp-integration.md) | Claude Code setup, all 9 tools |
-| [Configuration](docs/configuration.md) | Config fields, embeddings, storage |
+| [Architecture](docs/architecture.md) | System design, data flow, module breakdown |
+| [CLI Reference](docs/cli-reference.md) | All commands and options |
+| [API Reference](docs/api-reference.md) | REST endpoint specs with examples |
+| [MCP Integration](docs/mcp-integration.md) | Claude Code setup, all 9 tools, CLAUDE.md template |
+| [Configuration](docs/configuration.md) | Config fields, exclude patterns, custom embeddings |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and fixes |
 
 ## Architecture
@@ -128,23 +164,28 @@ indexa/
 │   ├── server/          # Express REST API
 │   ├── mcp/            # MCP stdio transport (9 tools)
 │   ├── types/          # TypeScript interfaces
-│   └── utils/          # BM25, byte-offset, query routing, summaries
+│   └── utils/          # BM25, byte-offset, query routing, stop words
 ├── cli/                # CLI commands (Commander)
 ├── docs/               # Documentation (7 guides)
 ├── sample-code/        # Test data
 ├── config/             # indexa.config.json
-└── data/               # Generated index (no inline code)
+└── data/               # Generated index (byte-offset, no inline code)
 ```
 
-## Core Design
+## Core Design Decisions
 
-- **Byte-offset retrieval** — Code read from source via O(1) seek, not stored in index
-- **Stable symbol IDs** — `filePath::name#type`, human-readable and bookmarkable
-- **Query routing** — Identifiers → symbol lookup, short → BM25, natural language → hybrid
-- **Hybrid scoring** — 50% semantic + 30% BM25 + 20% name match
-- **Token budgeting** — Pack results until budget exhausted
-- **LRU cache** — 100 entries, 5min TTL, auto-invalidated on re-index
-- **Context stitching** — Connections between symbols: calls, imports, depends_on
+| Decision | Rationale |
+|----------|-----------|
+| **Byte-offset retrieval** | Code read from source via O(1) seek, not stored in index. Keeps index small. |
+| **Stable symbol IDs** | `filePath::name#type` — human-readable, no UUIDs. |
+| **Query routing** | Identifiers → symbol lookup, short → BM25, natural language → hybrid. |
+| **Hybrid scoring** | 15% semantic + 45% BM25 + 20% name match + 20% path match. Keyword-dominant because hash embeddings are unreliable. |
+| **Stop-word filtering** | Common terms (`system`, `data`, `list`, `type`, `get`, `set`) excluded from BM25 to reduce noise. |
+| **Token budgeting** | Pack results until budget exhausted. Typical: 1500-3000 tokens. |
+| **LRU cache** | 100 entries, 5min TTL. Invalidated on re-index. |
+| **Context stitching** | Connections between symbols: calls, imports, depends_on. |
+| **Exclude patterns** | Minified builds, storybook, vendor scripts, test files — all auto-excluded. |
+| **Logger → stderr** | All `console.error()` so stdout stays clean for MCP JSON-RPC protocol. |
 
 ## License
 
