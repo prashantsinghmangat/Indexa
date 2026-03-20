@@ -1,10 +1,28 @@
 import * as path from 'path';
+import * as fs from 'fs';
 import { VectorDB } from '../src/storage/vector-db';
 import { Embedder } from '../src/indexer/embedder';
 import { HybridSearch } from '../src/retrieval/hybrid';
 import { GraphAnalysis } from '../src/retrieval/graph';
 import { FlowEngine, ExplainEngine } from '../src/intelligence';
 import { logger, readCodeAtOffset } from '../src/utils';
+
+/** Resolve the default data directory — uses Indexa install root, not CWD */
+function defaultDataDir(): string {
+  // __dirname at runtime = dist/cli → go up to find package.json with name "indexa"
+  let dir = __dirname;
+  for (let i = 0; i < 5; i++) {
+    const pkgPath = path.join(dir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        if (pkg.name === 'indexa') return path.join(dir, 'data');
+      } catch { /* continue */ }
+    }
+    dir = path.dirname(dir);
+  }
+  return path.resolve(__dirname, '..', '..', 'data');
+}
 
 /**
  * CLI search command — performs hybrid search and prints results.
@@ -13,7 +31,7 @@ export async function searchCommand(
   query: string,
   options: { topK?: number; tokenBudget?: number; mode?: string; dataDir?: string }
 ): Promise<void> {
-  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const dataDir = options.dataDir || defaultDataDir();
   const topK = options.topK || 5;
   const tokenBudget = options.tokenBudget;
 
@@ -71,7 +89,7 @@ export async function bundleCommand(
   query: string,
   options: { tokenBudget?: number; dataDir?: string }
 ): Promise<void> {
-  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const dataDir = options.dataDir || defaultDataDir();
   const tokenBudget = options.tokenBudget || 2000;
 
   const vectorDB = new VectorDB(dataDir);
@@ -127,7 +145,7 @@ export async function flowCommand(
   query: string,
   options: { depth?: number; dataDir?: string }
 ): Promise<void> {
-  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const dataDir = options.dataDir || defaultDataDir();
   const depth = options.depth || 3;
 
   const vectorDB = new VectorDB(dataDir);
@@ -167,7 +185,7 @@ export async function explainCommand(
   query: string,
   options: { tokenBudget?: number; dataDir?: string }
 ): Promise<void> {
-  const dataDir = options.dataDir || path.resolve(process.cwd(), 'data');
+  const dataDir = options.dataDir || defaultDataDir();
   const tokenBudget = options.tokenBudget || 2000;
 
   const vectorDB = new VectorDB(dataDir);

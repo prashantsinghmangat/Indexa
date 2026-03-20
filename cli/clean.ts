@@ -33,8 +33,8 @@ export async function cleanCommand(options?: {
   dryRun?: boolean;
   patterns?: string[];
 }): Promise<{ removed: number; remaining: number }> {
-  const projectRoot = process.cwd();
-  const dataDir = options?.dataDir || path.join(projectRoot, 'data');
+  const indexaRoot = path.resolve(__dirname, '..');
+  const dataDir = options?.dataDir || path.join(indexaRoot, 'data');
 
   const vectorDB = new VectorDB(dataDir);
   const metadataDB = new MetadataDB(dataDir);
@@ -85,8 +85,8 @@ export async function cleanCommand(options?: {
  * CLI stats command — show index health report.
  */
 export function statsCommand(options?: { dataDir?: string }): void {
-  const projectRoot = process.cwd();
-  const dataDir = options?.dataDir || path.join(projectRoot, 'data');
+  const indexaRoot = path.resolve(__dirname, '..');
+  const dataDir = options?.dataDir || path.join(indexaRoot, 'data');
 
   const embPath = path.join(dataDir, 'embeddings.json');
   const metaPath = path.join(dataDir, 'metadata.json');

@@ -138,7 +138,9 @@ program
     console.log('=== Step 1/4: Wiping old index ===');
     const path = await import('path');
     const fs = await import('fs');
-    const dir = dataDir || path.join(process.cwd(), 'data');
+    // Resolve data dir relative to Indexa install root, not CWD
+    const indexaRoot = path.resolve(__dirname, '..');
+    const dir = dataDir || path.join(indexaRoot, 'data');
     const embPath = path.join(dir, 'embeddings.json');
     const metaPath = path.join(dir, 'metadata.json');
     if (fs.existsSync(embPath)) fs.unlinkSync(embPath);
