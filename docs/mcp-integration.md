@@ -1,4 +1,4 @@
-# Indexa v3.0 — MCP Integration with Claude Code
+# Indexa v3.1 — MCP Integration with Claude Code
 
 Indexa provides 9 MCP tools including execution flow tracing, code explanation, and context-stitched bundles. Proven 51% token reduction vs manual file reading.
 

@@ -13,7 +13,7 @@ const program = new Command();
 program
   .name('indexa')
   .description('Indexa — AST-based codebase indexing with semantic + structural retrieval')
-  .version('3.0.0');
+  .version('3.1.0');
 
 // ─── Primary: one-command setup ─────────────────────────────────────────────
 program

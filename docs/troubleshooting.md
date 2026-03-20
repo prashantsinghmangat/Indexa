@@ -1,6 +1,43 @@
-# Indexa v3.0 — Troubleshooting
+# Indexa v3.1 — Troubleshooting
+
+## First Step: Run Doctor
+
+Before debugging manually, run:
+```powershell
+indexa doctor
+```
+
+This checks index, embeddings, MCP config, Claude Code, build, and server — with pass/fail for each.
+
+---
 
 ## Common Issues
+
+### `indexa` command not found
+
+```
+indexa : The term 'indexa' is not recognized
+```
+
+**Fix:** Either add npm global bin to PATH, or use the full path:
+```powershell
+node D:/Project/Indexa/dist/cli/index.js doctor
+```
+
+To add to PATH permanently (PowerShell as admin):
+```powershell
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\YourName\AppData\Roaming\npm", "User")
+```
+
+---
+
+### `indexa search` returns "No indexed data found"
+
+**Cause:** CLI was looking for `data/` relative to your current directory, not the Indexa install root.
+
+**Fix:** Update to v3.1 — this is now fixed. All CLI commands resolve data paths from the Indexa install root automatically.
+
+---
 
 ### PowerShell `&&` error
 

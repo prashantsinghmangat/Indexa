@@ -1,6 +1,6 @@
 {
   "name": "indexa",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Indexa — Code intelligence via MCP. Context bundles, execution flow tracing, code explanation, BM25 + semantic search, byte-offset retrieval, dependency graphs, and LRU query cache.",
   "main": "dist/src/server/index.js",
   "bin": {

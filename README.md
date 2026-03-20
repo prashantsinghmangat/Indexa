@@ -1,4 +1,4 @@
-# Indexa v3.0
+# Indexa v3.1
 
 Code intelligence via the Model Context Protocol (MCP). Not just search — Indexa explains code, traces execution flows, and assembles context bundles for LLMs.
 
@@ -6,33 +6,54 @@ Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 
 
 **Free forever** — no API keys needed, runs locally, offline-capable. Uses local ML embeddings via [Transformers.js](https://huggingface.co/docs/transformers.js) (gte-small model, 384 dimensions).
 
-## What's New in v3.0
-
-- **Local ML embeddings** — Transformers.js with gte-small model (384-dim vectors), no API keys needed
-- **`indexa_context_bundle`** — PRIMARY tool. Returns symbols + code + dependencies + connections within a token budget
-- **`indexa_flow`** — Trace execution flow across functions/files with depth control
-- **`indexa_explain`** — Human-readable code explanation from actual symbols
-- **Context stitching** — Connections between symbols: `calls`, `imports`, `depends_on`
-- **LRU query cache** — 100 entries, 5min TTL. Auto-invalidated on re-index
-- **Byte-offset retrieval** — Code read from source files via O(1) seek, not stored in index
-- **Stable symbol IDs** — `filePath::name#type`, human-readable and bookmarkable
-- **BM25 keyword search** — With stop-word filtering and path matching
-- **File diversity** — Max 2 chunks per file in context bundles to prevent monopolization
-- **Cleaned index** — Auto-excludes minified builds, storybook files, vendor scripts
-- **VS Code extension** — Native editor integration at `indexa-vscode/`
-
-## Quick Start
+## Quick Start (One Command)
 
 ```powershell
 cd D:\Project\Indexa
 npm install
 npm run build
-node dist/cli/index.js init
-node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass"
-node dist/cli/index.js search "vendor pricing"
+indexa setup "D:\path\to\your\project"
 ```
 
+That's it. `indexa setup` automatically:
+- Detects your project (language, framework)
+- Indexes the codebase with ML embeddings
+- Configures MCP for Claude Code
+- Runs a test query to verify everything works
+
+```
+  ╔═══════════════════════════════════╗
+  ║   Indexa ready!                    ║
+  ╚═══════════════════════════════════╝
+  Setup complete in 12.6s
+  6,838 chunks indexed
+```
+
+Then restart Claude Code and ask: _"explain the authentication flow"_
+
 See [Quick Start Guide](docs/quick-start.md) for full details.
+
+## What's New in v3.1
+
+- **`indexa setup`** — One command: detect project → index → configure MCP → verify. Under 60 seconds
+- **`indexa doctor`** — Health check: index, embeddings, MCP config, server startup
+- **Query intent classification** — Auto-detects flow/explain/references/debug/search intent and adjusts weights
+- **CLI works from any directory** — No need to `cd` into Indexa; commands resolve data paths automatically
+- **Entry-point boosting** — Controllers, services, exports rank above internal helpers
+- **Dependency pruning** — Trivial 1-line functions excluded from bundles
+
+### v3.0 Features
+
+- **Local ML embeddings** — Transformers.js with gte-small model (384-dim vectors)
+- **`indexa_context_bundle`** — PRIMARY tool. Symbols + code + deps + connections within token budget
+- **`indexa_flow`** — Trace execution flow across functions/files
+- **`indexa_explain`** — Human-readable code explanation from actual symbols
+- **Context stitching** — Connections between symbols: `calls`, `imports`, `depends_on`
+- **LRU query cache** — 100 entries, 5min TTL
+- **Byte-offset retrieval** — Code read from source via O(1) seek
+- **BM25 keyword search** — Stop-word filtering, path matching
+- **File diversity** — Max 2 chunks per file in bundles
+- **VS Code extension** — Native editor integration
 
 ## VS Code Extension
 
@@ -136,14 +157,21 @@ See [Configuration](docs/configuration.md) for all options.
 ## CLI Commands
 
 ```powershell
-node dist/cli/index.js init                              # Initialize config + data dirs
-node dist/cli/index.js index "D:\path\to\project"        # Full index (skips unchanged)
-node dist/cli/index.js update                             # Incremental via git diff
-node dist/cli/index.js search "query"                     # Hybrid search
-node dist/cli/index.js search "query" --top-k 10          # More results
-node dist/cli/index.js serve                               # REST API on :3000
-node dist/cli/index.js serve --port 8080                   # Custom port
+indexa setup "D:\path\to\project"        # One-command setup (auto everything)
+indexa doctor                             # Health check (index, MCP, server)
+indexa search "vendor pricing"            # Hybrid search
+indexa bundle "authentication flow"       # Context bundle (PRIMARY for LLMs)
+indexa flow "getVendorRates"              # Execution flow tracing
+indexa explain "vendor pricing system"    # Code explanation
+indexa index "D:\path\to\project"         # Full index (skips unchanged)
+indexa update                              # Incremental via git diff
+indexa clean                               # Purge junk chunks
+indexa health                              # Index stats report
+indexa reindex "D:\path\to\project"        # Wipe + re-index + clean
+indexa serve                               # REST API on :3000
 ```
+
+> **Note:** If `indexa` isn't in your PATH, use `node D:/Project/Indexa/dist/cli/index.js` instead.
 
 ## API Endpoints
 

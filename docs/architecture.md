@@ -1,4 +1,4 @@
-# Indexa v3.0 — Architecture
+# Indexa v3.1 — Architecture
 
 ## Overview
 
@@ -89,7 +89,7 @@ LRU cache for expensive operations:
 
 ## Embeddings
 
-Indexa v3.0 uses local ML embeddings via **Transformers.js** with the **gte-small** model:
+Indexa v3.1 uses local ML embeddings via **Transformers.js** with the **gte-small** model:
 
 - **Dimensions:** 384
 - **Model:** Supabase/gte-small (downloaded and cached locally on first run)

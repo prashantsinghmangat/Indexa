@@ -1,6 +1,6 @@
-# Indexa v3.0 — Quick Start
+# Indexa v3.1 — Quick Start
 
-Get up and running in under 2 minutes. Free forever — no API keys needed, runs locally, offline-capable.
+Get up and running in under 60 seconds. Free forever — no API keys, runs locally, offline-capable.
 
 ## Prerequisites
 
@@ -18,110 +18,107 @@ npm run build
 
 > **PowerShell note:** Run commands separately. PowerShell does not support `&&`.
 
-## 2. Initialize
+## 2. Setup (One Command)
 
 ```powershell
-node dist/cli/index.js init
+indexa setup "D:\path\to\your\project"
 ```
 
-Creates `config/indexa.config.json` and `data/` directory.
+> If `indexa` isn't in your PATH: `node dist/cli/index.js setup "D:\path\to\your\project"`
 
-## 3. Index Your Codebase
-
-```powershell
-node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass"
-```
+This single command:
+1. **Detects** your project (language, framework, file count)
+2. **Indexes** the codebase with ML embeddings (Transformers.js, 384-dim)
+3. **Cleans** junk entries (minified builds, vendor scripts, storybook, tests)
+4. **Configures MCP** — adds Indexa to `~/.mcp.json` and creates project-level `.mcp.json`
+5. **Verifies** by running a live test query
 
 Output:
 ```
-Indexing complete in 4.2s
-  Files indexed: 1016
-  Chunks created: 8510
-  Data stored in: ./data
+  ╔═══════════════════════════════════╗
+  ║   Indexa ready!                    ║
+  ╚═══════════════════════════════════╝
+  Setup complete in 12.6s
+  6,838 chunks indexed
 ```
 
-The indexer automatically:
-- Parses TypeScript/TSX with ts-morph AST, JavaScript with regex patterns
-- Extracts functions, classes, React components, AngularJS controllers/services
-- Generates ML embeddings locally via Transformers.js (gte-small, 384 dimensions) — no API keys needed
-- Stores byte-offset references (code is NOT stored in the index)
-- Skips minified builds, storybook, vendor scripts, test files, angular-mocks, e2e
-- Skips unchanged files on re-run (hash-based detection)
-
-## 4. Search
+## 3. Verify
 
 ```powershell
-node dist/cli/index.js search "vendor pricing"
-node dist/cli/index.js search "getVendorRatesByServiceArea" --top-k 3
+indexa doctor
 ```
 
-The query router auto-detects: identifiers → symbol lookup, short queries → keyword/BM25, else → hybrid search (35% semantic + 25% BM25 + 15% name match + 25% path match).
+```
+  ✓ Index: 8,997 chunks
+  ✓ Embeddings: ML (384-dim)
+  ✓ Metadata: 966 files tracked
+  ✓ MCP: configured and server file exists
+  ✓ Claude Code: installed
+  ✓ Build: dist/src/mcp/stdio.js exists
+  ✓ MCP server: starts and responds correctly
+```
 
-## 5. Start the REST API
+## 4. Use with Claude Code
+
+Restart Claude Code after setup. 9 tools are auto-available. Just ask:
+
+```
+"explain the authentication flow"
+"what depends on pricingService"
+"how does vendor pricing work"
+```
+
+Claude will auto-call `indexa_context_bundle` and return relevant code with 51% fewer tokens.
+
+## 5. Use the CLI (Works from Any Directory)
 
 ```powershell
-node dist/cli/index.js serve
+indexa search "vendor pricing"               # Hybrid search
+indexa bundle "authentication flow"          # Context bundle (best for LLMs)
+indexa flow "getVendorRates"                 # Execution flow trace
+indexa explain "vendor pricing system"       # Code explanation
 ```
 
-Server at http://localhost:3000. See [API Reference](./api-reference.md) for all 12 endpoints.
+**Query intent classification** auto-detects what you need:
+- _"how does auth work"_ → **flow** intent → boosts semantic weights
+- _"where is pricingService used"_ → **references** intent → boosts name matching
+- _"fix login bug"_ → **debug** intent → boosts path context
+- _"VendorAuthGuard"_ → **symbol lookup** → direct name match
 
-## 6. Use with Claude Code (MCP)
+## 6. Use with VS Code
 
-Add to `~/.mcp.json`:
-```json
-{
-  "mcpServers": {
-    "indexa": {
-      "command": "node",
-      "args": [
-        "D:/Project/Indexa/dist/src/mcp/stdio.js",
-        "--data-dir",
-        "D:/Project/Indexa/data"
-      ]
-    }
-  }
-}
-```
-
-**Important:** `--data-dir` is required so the MCP server finds index data regardless of which directory Claude Code is opened from.
-
-Restart Claude Code. 9 tools become available. Proven 51% token reduction vs manual file reading.
-
-## 7. Use with VS Code
-
-A native VS Code extension is available at `indexa-vscode/`. Key commands:
+Install the extension from `indexa-vscode/indexa-0.1.0.vsix`:
+1. `Ctrl+Shift+P` → "Install from VSIX"
+2. Start the server: `indexa serve`
+3. Use `Ctrl+Shift+I` to ask Indexa
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
-| **Ask Indexa** | `Ctrl+Shift+I` | Query Indexa from the editor |
-| **Explain This** | — | Explain selected code |
-| **Show Flow** | — | Trace execution flow |
-| **Find References** | — | Find all references to selected symbol |
-| **Reindex** | — | Re-index the current workspace |
-| **Health Check** | — | Verify Indexa server status |
+| **Ask Indexa** | `Ctrl+Shift+I` | Query from the editor |
+| **Explain This** | Right-click | Explain selected code |
+| **Show Flow** | Right-click | Trace execution flow |
+| **Find References** | Right-click | Find symbol usages |
+| **Reindex** | Command palette | Re-index workspace |
+| **Health Check** | Command palette | Verify server status |
 
-## 8. Re-index After Code Changes
+## 7. Re-index After Code Changes
 
-See [Re-indexing Guide](./reindexing.md) for all options.
-
-Quick version:
 ```powershell
-# Full re-index (skips unchanged files)
-node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
-
-# Git-based incremental (only files changed since last commit)
-node dist/cli/index.js update --data-dir ./data
-
-# From Claude Code:
-# "Use indexa_index to re-index D:\SafeGuard\SPINext-App-SPIGlass"
+indexa index "D:\path\to\project"       # Full (skips unchanged files)
+indexa update                            # Git-based incremental
+indexa reindex "D:\path\to\project"      # Wipe + fresh re-index + clean
 ```
+
+Or from Claude Code: _"Use indexa_index to re-index my project"_
+
+See [Re-indexing Guide](./reindexing.md) for details.
 
 ## What's Next?
 
-- [Re-indexing Guide](./reindexing.md) — How to keep the index fresh
+- [CLI Reference](./cli-reference.md) — All commands and options
 - [MCP Integration](./mcp-integration.md) — Claude Code setup, CLAUDE.md template
 - [Architecture](./architecture.md) — System design and data flow
 - [Configuration](./configuration.md) — Exclude patterns, file types, embeddings
-- [CLI Reference](./cli-reference.md) — All commands and options
 - [API Reference](./api-reference.md) — REST endpoint details
+- [Re-indexing Guide](./reindexing.md) — Keeping the index fresh
 - [Troubleshooting](./troubleshooting.md) — Common issues and fixes

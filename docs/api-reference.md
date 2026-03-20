@@ -1,4 +1,4 @@
-# Indexa v3.0 — API Reference
+# Indexa v3.1 — API Reference
 
 Base URL: `http://localhost:3000` — all endpoints prefixed with `/api`.
 

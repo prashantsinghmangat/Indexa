@@ -1,4 +1,4 @@
-# Indexa v3.0 — Configuration
+# Indexa v3.1 — Configuration
 
 ## Config File
 
@@ -114,7 +114,7 @@ These are defined in `src/utils/index.ts`.
 
 ## Embeddings
 
-Indexa v3.0 uses **local ML embeddings** via Transformers.js:
+Indexa v3.1 uses **local ML embeddings** via Transformers.js:
 
 | Property | Value |
 |----------|-------|
