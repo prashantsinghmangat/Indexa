@@ -1,0 +1,104 @@
+{
+  "name": "indexa",
+  "displayName": "Indexa — Code Intelligence",
+  "description": "AI-powered code search, explanation, and flow tracing. Reduces LLM token usage by 50%+.",
+  "version": "0.1.0",
+  "publisher": "indexa",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "indexa.ask",
+        "title": "Ask Indexa"
+      },
+      {
+        "command": "indexa.explain",
+        "title": "Indexa: Explain This"
+      },
+      {
+        "command": "indexa.flow",
+        "title": "Indexa: Show Flow"
+      },
+      {
+        "command": "indexa.references",
+        "title": "Indexa: Find References"
+      },
+      {
+        "command": "indexa.reindex",
+        "title": "Indexa: Reindex Project"
+      },
+      {
+        "command": "indexa.health",
+        "title": "Indexa: Health Check"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "indexa.explain",
+          "group": "indexa@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "indexa.flow",
+          "group": "indexa@2",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "indexa.references",
+          "group": "indexa@3",
+          "when": "editorHasSelection"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Indexa",
+      "properties": {
+        "indexa.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Indexa REST API server URL"
+        },
+        "indexa.dataDir": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Indexa data directory (leave empty for default)"
+        },
+        "indexa.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Indexa CLI (node dist/cli/index.js). Leave empty to use REST API."
+        },
+        "indexa.defaultTokenBudget": {
+          "type": "number",
+          "default": 4000,
+          "description": "Default token budget for context bundles (4000 = ~8-12 symbols with code)"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "indexa.ask",
+        "key": "ctrl+shift+i",
+        "mac": "cmd+shift+i"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+    "watch": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "package": "vsce package",
+    "install-ext": "code --install-extension indexa-0.1.0.vsix"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.10.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.3.2"
+  }
+}

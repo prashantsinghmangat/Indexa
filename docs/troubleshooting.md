@@ -138,7 +138,8 @@ node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
 **Common causes:**
 1. **Minified build artifacts indexed** — single-letter function names (`e`, `s`, `v`) match everything
 2. **Storybook/test files indexed** — `Search` from UiIcon.stories.tsx matches "search" queries
-3. **Vendor libraries indexed** — angular-resource.js, jQuery, etc.
+3. **Vendor libraries indexed** — angular-resource.js, jQuery, angular-mocks, etc.
+4. **E2E test files indexed** — test infrastructure polluting results
 
 **Fix:** Update `config/indexa.config.json` exclude patterns:
 ```json
@@ -146,7 +147,8 @@ node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
   "node_modules", "dist", ".git",
   "*.test.*", "*.spec.*", "*.stories.*",
   "public/react-shell/assets",
-  "public/Scripts",
+  "public/Scripts", "public/Scripts/",
+  "angular-mocks", "e2e/",
   "*.min.js", "*.bundle.js"
 ]
 ```
@@ -155,6 +157,29 @@ Then purge existing junk and re-index:
 ```powershell
 node -e "const {VectorDB}=require('./dist/src/storage/vector-db');const db=new VectorDB('./data');let r=0;db.getAll().forEach(c=>{if(c.filePath.includes('pattern/to/remove')){db.remove(c.id);r++}});db.save();console.log('Removed',r)"
 ```
+
+---
+
+### Transformers.js model download fails
+
+**Cause:** First run requires downloading the gte-small model (~30MB). May fail behind corporate proxies.
+
+**Fix:** Ensure network access on first run, or copy the cached model from another machine. The model is cached in the default Hugging Face cache directory after first download.
+
+---
+
+### Embeddings dimension mismatch after upgrade
+
+**Cause:** Upgraded from hash-based embeddings (128-dim) to ML embeddings (384-dim).
+
+**Fix:** Delete old data and re-index:
+```powershell
+del data\embeddings.json
+del data\metadata.json
+node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
+```
+
+Also update `embeddingDim` in `config/indexa.config.json` to `384`.
 
 ---
 

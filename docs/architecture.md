@@ -2,15 +2,15 @@
 
 ## Overview
 
-Indexa is a code intelligence system that provides semantic retrieval, execution flow tracing, and code explanation via the Model Context Protocol (MCP).
+Indexa is a code intelligence system that provides semantic retrieval, execution flow tracing, and code explanation via the Model Context Protocol (MCP). Uses local ML embeddings (Transformers.js, gte-small, 384 dimensions) — no API keys needed, fully offline-capable.
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │                        Consumers                               │
-│  Claude Code (MCP, 9 tools)  │  REST API  │  CLI               │
-└──────────┬───────────────────┴──────┬─────┴──────┬─────────────┘
-           │                          │            │
-           ▼                          ▼            ▼
+│  Claude Code (MCP, 9 tools)  │  VS Code Extension  │  REST API  │  CLI
+└──────────┬───────────────────┴──────────┬───────────┴──────┬─────┴──────┐
+           │                              │                  │            │
+           ▼                              ▼                  ▼            ▼
 ┌───────────────────────────────────────────────────────────────┐
 │                   Intelligence Layer                           │
 │                                                                │
@@ -37,7 +37,8 @@ Indexa is a code intelligence system that provides semantic retrieval, execution
 │  │  Parser      │  │  Semantic     │  │  VectorDB           │ │
 │  │  Chunker     │  │  BM25 Keyword │  │  MetadataDB         │ │
 │  │  Embedder    │  │  Hybrid       │  │  (atomic writes)    │ │
-│  │  Updater     │  │  Graph        │  │                    │ │
+│  │  (gte-small) │  │  Graph        │  │                    │ │
+│  │  Updater     │  │               │  │                    │ │
 │  └──────────────┘  └───────────────┘  └────────────────────┘ │
 │                                                                │
 │  ┌────────────────────────────────────────────────────────┐   │
@@ -86,11 +87,43 @@ LRU cache for expensive operations:
 - **Cached:** context_bundle, flow, explain
 - **Auto-cleared** on re-index
 
+## Embeddings
+
+Indexa v3.0 uses local ML embeddings via **Transformers.js** with the **gte-small** model:
+
+- **Dimensions:** 384
+- **Model:** Supabase/gte-small (downloaded and cached locally on first run)
+- **No API keys required** — runs entirely offline
+- **Batch processing** during indexing for throughput
+
+This replaces the earlier hash-based embeddings, providing high-quality semantic similarity.
+
 ## Hybrid Scoring
 
 ```
-score = semantic × 0.5 + keyword(BM25) × 0.3 + name_match × 0.2
+score = semantic × 0.35 + keyword(BM25) × 0.25 + name_match × 0.15 + path_match × 0.25
 ```
+
+| Component | Weight | Description |
+|-----------|--------|-------------|
+| Semantic (cosine similarity) | 35% | ML embedding similarity via gte-small |
+| BM25 keyword | 25% | Term frequency x inverse document frequency |
+| Name match | 15% | Query tokens matching symbol names |
+| Path match | 25% | Query tokens matching file path segments |
+
+## File Diversity
+
+Context bundles enforce a **max 2 chunks per file** limit. This prevents any single large file from monopolizing the results and ensures the LLM sees code from multiple relevant files.
+
+## Query Router
+
+The query router auto-detects query type and routes accordingly:
+
+| Query Pattern | Route | Example |
+|---------------|-------|---------|
+| PascalCase/camelCase identifiers | Symbol lookup (O(1)) | `getVendorRates`, `VendorService` |
+| Short queries (1-2 words) | BM25 keyword search | `vendor`, `auth service` |
+| Natural language | Hybrid search | `how does vendor pricing work` |
 
 ## MCP Tools (9)
 
@@ -106,6 +139,23 @@ score = semantic × 0.5 + keyword(BM25) × 0.3 + name_match × 0.2
 | 8 | `indexa_index` | Management | Index a directory |
 | 9 | `indexa_stats` | Management | Index stats + cache status |
 
+## REST API Endpoints (12)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/search` | Auto-routed search |
+| POST | `/api/context-bundle` | PRIMARY. Symbols + deps + connections |
+| POST | `/api/flow` | Execution flow tracing |
+| POST | `/api/explain` | Code explanation |
+| GET | `/api/file?path=` | File chunks |
+| GET | `/api/symbol?name=` | Symbol lookup |
+| GET | `/api/references?name=` | References + blast radius |
+| GET | `/api/blast-radius?name=` | Change impact analysis |
+| GET | `/api/stats` | Index statistics |
+| GET | `/api/health` | Health check |
+| POST | `/api/update` | Incremental re-index |
+| GET | `/api/outline?path=` | File symbol outline |
+
 ## File Map
 
 ```
@@ -119,22 +169,23 @@ indexa/
 │   ├── retrieval/
 │   │   ├── semantic.ts       # Cosine similarity
 │   │   ├── keyword.ts        # BM25 + field weighting
-│   │   ├── hybrid.ts         # Query router + 3-component scoring
+│   │   ├── hybrid.ts         # Query router + 4-component scoring
 │   │   └── graph.ts          # Deps, refs, hierarchy, context bundles
 │   ├── indexer/
 │   │   ├── parser.ts         # AST + regex + byte offsets
 │   │   ├── chunker.ts        # Element → chunk (no code stored)
-│   │   ├── embedder.ts       # Pluggable embeddings
+│   │   ├── embedder.ts       # Transformers.js ML embeddings (gte-small, 384-dim)
 │   │   └── updater.ts        # Full + incremental indexing
 │   ├── storage/
 │   │   ├── vector-db.ts      # Atomic JSON, no inline code
 │   │   └── metadata-db.ts    # Atomic JSON, file hashes
-│   ├── server/               # Express REST API
+│   ├── server/               # Express REST API (12 endpoints)
 │   ├── mcp/stdio.ts          # MCP server (9 tools)
 │   ├── types/index.ts        # All interfaces
 │   └── utils/index.ts        # BM25, byte-offset, query routing, summaries
 ├── cli/                      # Commander CLI (8 commands)
-├── docs/                     # Documentation (7 guides)
+├── indexa-vscode/            # VS Code extension (Ask Indexa, Explain, Flow, etc.)
+├── docs/                     # Documentation (8 guides)
 ├── sample-code/              # Test data
 ├── config/                   # indexa.config.json
 └── data/                     # Generated index

@@ -165,30 +165,144 @@ function splitCamelCase(name: string): string {
 
 // --- Query routing ---
 
-export type QueryIntent = 'symbol_lookup' | 'keyword' | 'hybrid';
+/** Low-level search strategy */
+export type SearchStrategy = 'symbol_lookup' | 'keyword' | 'hybrid';
 
-/** Detect query intent to route to the best search strategy */
-export function detectQueryIntent(query: string): QueryIntent {
+/** High-level semantic intent — what the developer is trying to do */
+export type SemanticIntent = 'flow' | 'explain' | 'references' | 'debug' | 'search';
+
+/** Full query classification result */
+export interface QueryClassification {
+  /** Low-level: how to search */
+  strategy: SearchStrategy;
+  /** High-level: what the developer wants */
+  intent: SemanticIntent;
+  /** 0-1 confidence in the intent classification */
+  confidence: number;
+  /** Extracted subject (the thing being queried about) */
+  subject: string;
+}
+
+// --- Intent detection patterns ---
+
+const FLOW_PATTERNS = [
+  /how\s+does\s+/i,           // "how does auth work"
+  /what\s+happens\s+when/i,   // "what happens when user logs in"
+  /execution\s+(flow|path)/i, // "execution flow of pricing"
+  /call\s+(chain|graph|tree)/i,
+  /\bflow\b/i,                // "authentication flow"
+  /\bpipeline\b/i,
+  /\blifecycle\b/i,
+  /\bsequence\b/i,
+  /what\s+calls\b/i,          // "what calls getUser"
+  /\btrace\b/i,
+];
+
+const EXPLAIN_PATTERNS = [
+  /explain\b/i,               // "explain vendor pricing"
+  /what\s+(is|are)\s+/i,      // "what is ChangeSource"
+  /how\s+(is|are)\s+.*\s+(used|implemented|structured)/i,
+  /\bpurpose\b/i,
+  /\boverview\b/i,
+  /\barchitecture\b/i,
+  /\bdesign\b/i,
+  /why\s+(does|is|do)\s+/i,   // "why does login redirect"
+  /what\s+does\s+.*\s+do\b/i, // "what does VendorAuthGuard do"
+  /describe\b/i,
+];
+
+const REFERENCE_PATTERNS = [
+  /where\s+(is|are)\s+.*\s+used/i,    // "where is pricingService used"
+  /who\s+(uses|calls|imports)/i,       // "who calls getVendorRates"
+  /\bused\s+by\b/i,
+  /\bdepends\s+on\b/i,
+  /\bimported\s+by\b/i,
+  /\breferences?\s+to\b/i,
+  /what\s+(uses|depends|imports)/i,    // "what uses ErrorBoundary"
+  /\bblast\s*radius\b/i,
+  /\bimpact\b/i,
+];
+
+const DEBUG_PATTERNS = [
+  /\bfix\b/i,                 // "fix login bug"
+  /\bbug\b/i,
+  /\berror\b.*\b(in|on|at)\b/i,  // "error in auth handler"
+  /\bfail(s|ing|ed)?\b/i,    // "login failing on token"
+  /\bbroken\b/i,
+  /\bnot\s+working\b/i,
+  /\bcrash(es|ing)?\b/i,
+  /\bissue\b/i,
+  /why\s+(is|does).*\b(fail|break|crash|error)/i,
+  /\bdebug\b/i,
+  /\btroubleshoot\b/i,
+];
+
+/** Classify a query into search strategy + semantic intent */
+export function classifyQuery(query: string): QueryClassification {
   const trimmed = query.trim();
+  const lower = trimmed.toLowerCase();
 
-  // Single word that looks like an identifier: camelCase, PascalCase, snake_case, $prefix
-  if (/^[\w$]+$/.test(trimmed) && (/[A-Z]/.test(trimmed) || trimmed.includes('_') || trimmed.startsWith('$'))) {
-    return 'symbol_lookup';
-  }
+  // --- Detect search strategy (how to search) ---
+  let strategy: SearchStrategy = 'hybrid';
 
-  // Looks like a symbol ID (contains :: or #)
+  // Symbol ID (contains :: or #)
   if (trimmed.includes('::') || trimmed.includes('#')) {
-    return 'symbol_lookup';
+    strategy = 'symbol_lookup';
+  }
+  // Single identifier: camelCase, PascalCase, snake_case, $prefix
+  else if (/^[\w$]+$/.test(trimmed) && (/[A-Z]/.test(trimmed) || trimmed.includes('_') || trimmed.startsWith('$'))) {
+    strategy = 'symbol_lookup';
+  }
+  // Single short word → keyword
+  else if (trimmed.split(/\s+/).length === 1 && trimmed.length <= 30) {
+    strategy = 'keyword';
   }
 
-  // Short query (1-2 words, no spaces or just one) — keyword is more precise
-  const words = trimmed.split(/\s+/);
-  if (words.length <= 2 && words.every(w => w.length <= 30)) {
-    return 'keyword';
+  // --- Detect semantic intent (what the developer wants) ---
+  const intentScores: Record<SemanticIntent, number> = {
+    flow: 0, explain: 0, references: 0, debug: 0, search: 0,
+  };
+
+  for (const p of FLOW_PATTERNS) { if (p.test(lower)) intentScores.flow += 1; }
+  for (const p of EXPLAIN_PATTERNS) { if (p.test(lower)) intentScores.explain += 1; }
+  for (const p of REFERENCE_PATTERNS) { if (p.test(lower)) intentScores.references += 1; }
+  for (const p of DEBUG_PATTERNS) { if (p.test(lower)) intentScores.debug += 1; }
+
+  // Find the best-scoring intent
+  let bestIntent: SemanticIntent = 'search';
+  let bestScore = 0;
+  for (const [intent, score] of Object.entries(intentScores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestIntent = intent as SemanticIntent;
+    }
   }
 
-  // Default: hybrid for natural language queries
-  return 'hybrid';
+  // Confidence: normalize by max possible matches for that intent type
+  const maxPatterns = Math.max(FLOW_PATTERNS.length, EXPLAIN_PATTERNS.length, REFERENCE_PATTERNS.length, DEBUG_PATTERNS.length);
+  const confidence = bestScore > 0 ? Math.min(bestScore / 2, 1.0) : 0;
+
+  // Extract subject: strip intent keywords to isolate what's being queried
+  const subject = extractSubject(trimmed);
+
+  return { strategy, intent: bestIntent, confidence, subject };
+}
+
+/** Extract the subject (the "thing" being queried) by stripping intent keywords */
+function extractSubject(query: string): string {
+  return query
+    .replace(/^(how\s+does|how\s+is|what\s+(is|are|does|calls|uses|depends\s+on)|where\s+(is|are)|who\s+(uses|calls|imports)|explain|describe|fix|debug|trace|why\s+(is|does))\s+/i, '')
+    .replace(/\s+(work(s|ing)?|used|implemented|called|imported|do|flow|logic|system|module|failing|broken|not\s+working)$/i, '')
+    .replace(/\?+$/, '')
+    .trim();
+}
+
+/** Legacy compat: map to old QueryIntent type */
+export type QueryIntent = SearchStrategy;
+
+/** Legacy compat: returns just the search strategy */
+export function detectQueryIntent(query: string): QueryIntent {
+  return classifyQuery(query).strategy;
 }
 
 // --- Token estimation ---
@@ -243,18 +357,18 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 const BM25_K1 = 1.5;
 const BM25_B = 0.75;
 
-/** Common stop words that add noise to code search */
+/** Stop words for BM25 — ONLY true English stop words.
+ *  Code-relevant terms (error, data, get, set, function, class, etc.) are kept
+ *  because they carry real signal in code search. "error handling" should NOT
+ *  become just "handling". */
 const STOP_WORDS = new Set([
   'the', 'is', 'at', 'which', 'on', 'in', 'for', 'to', 'of', 'and', 'or',
   'it', 'an', 'as', 'by', 'be', 'this', 'that', 'from', 'with', 'are',
   'was', 'were', 'been', 'has', 'have', 'had', 'do', 'does', 'did', 'not',
   'but', 'if', 'no', 'so', 'up', 'out', 'about', 'into', 'can', 'will',
   'all', 'how', 'what', 'when', 'where', 'why', 'who',
-  // Code-generic terms that match too broadly
-  'system', 'data', 'item', 'items', 'list', 'type', 'value', 'values',
-  'result', 'results', 'response', 'request', 'error', 'status',
-  'get', 'set', 'new', 'function', 'class', 'module', 'export', 'import',
-  'default', 'return', 'const', 'let', 'var',
+  // Only JS keywords that are literally never symbol names
+  'const', 'let', 'var', 'default', 'return', 'typeof', 'instanceof',
 ]);
 
 /** Tokenize text for BM25: split camelCase/snake_case, lowercase, filter stop words */

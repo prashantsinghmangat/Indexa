@@ -162,9 +162,19 @@ export class GraphAnalysis {
     const importMap = new Map<string, RetrievedSymbol>();
     let totalTokens = 0;
 
+    // Enforce file diversity: max 2 chunks per file to prevent one file from monopolizing results.
+    // This ensures the bundle covers multiple files/modules for broader context.
+    const MAX_CHUNKS_PER_FILE = 2;
+    const fileChunkCount = new Map<string, number>();
+
     // Pack primary symbols from search results
     for (const result of searchResults) {
       const chunk = result.chunk;
+
+      // Skip if this file already has enough chunks
+      const currentCount = fileChunkCount.get(chunk.filePath) || 0;
+      if (currentCount >= MAX_CHUNKS_PER_FILE) continue;
+
       const code = readCodeAtOffset(chunk.filePath, chunk.byteOffset, chunk.byteLength);
       if (!code) continue;
 
@@ -182,21 +192,31 @@ export class GraphAnalysis {
         summary: chunk.summary,
       });
       totalTokens += symTokens;
+      fileChunkCount.set(chunk.filePath, currentCount + 1);
 
-      // Resolve 1-level dependencies within remaining budget
-      for (const depName of chunk.dependencies.slice(0, 5)) {
+      // Resolve 1-level dependencies within remaining budget.
+      // Use signature-only (first line up to {) for deps — saves tokens, LLMs mostly
+      // need name/params/return type, not implementation.
+      // Prefer deps from the same directory as the source symbol.
+      for (const depName of chunk.dependencies.slice(0, 8)) {
         if (importMap.has(depName)) continue;
 
         const depChunks = this.vectorDB.findByName(depName);
         if (depChunks.length === 0) continue;
 
-        const dep = depChunks[0];
+        // Pick best match: same file > same dir > any (not arbitrary first match)
+        const dep = this.pickBestDep(depChunks, chunk);
         if (dep.id === chunk.id) continue; // skip self
 
-        const depCode = readCodeAtOffset(dep.filePath, dep.byteOffset, dep.byteLength);
-        if (!depCode) continue;
+        const fullCode = readCodeAtOffset(dep.filePath, dep.byteOffset, dep.byteLength);
+        if (!fullCode) continue;
 
-        const depTokens = estimateTokens(depCode);
+        // Prune trivial deps: 1-line functions, simple getters/setters, empty stubs
+        if (this.isTrivialDep(dep, fullCode)) continue;
+
+        // Use signature-only for deps: first line up to opening brace
+        const depCode = this.extractSignature(fullCode) || fullCode;
+        const depTokens = estimateTokens(depCode) + estimateTokens(dep.summary);
         if (totalTokens + depTokens > tokenBudget) continue;
 
         importMap.set(depName, {
@@ -213,11 +233,89 @@ export class GraphAnalysis {
       }
     }
 
+    // Structure the bundle: entry points first, then core logic, then helpers.
+    // This gives LLMs a top-down understanding — main function first, details after.
+    const structured = this.structureSymbols(symbols);
+
     return {
-      symbols,
+      symbols: structured,
       imports: Array.from(importMap.values()),
       estimatedTokens: totalTokens,
     };
+  }
+
+  /** Order symbols for LLM understanding: entry points → core logic → helpers.
+   *  Like reading code top-down: start with what matters most. */
+  private structureSymbols(symbols: RetrievedSymbol[]): RetrievedSymbol[] {
+    const ROLE_ORDER: Record<string, number> = {
+      controller: 0, service: 0,
+      module: 1, component: 1,
+      class: 2, export: 2,
+      method: 3, function: 3,
+    };
+
+    return [...symbols].sort((a, b) => {
+      const roleA = ROLE_ORDER[a.type] ?? 4;
+      const roleB = ROLE_ORDER[b.type] ?? 4;
+      if (roleA !== roleB) return roleA - roleB;
+
+      // Within same role: _part0 before _part1
+      const partA = a.name.match(/_part(\d+)/)?.[1];
+      const partB = b.name.match(/_part(\d+)/)?.[1];
+      if (partA && partB) return Number(partA) - Number(partB);
+
+      return 0; // preserve search-score order
+    });
+  }
+
+  /** Check if a dependency is trivial and not worth including in the bundle.
+   *  Trivial: 1-3 line functions, simple getters, re-exports, stubs. */
+  private isTrivialDep(dep: IndexedChunk, code: string): boolean {
+    const lineCount = dep.endLine - dep.startLine;
+
+    // Very short functions (1-3 lines) are usually trivial wrappers
+    if (lineCount <= 3) return true;
+
+    // Simple getter pattern: return this.X or return X
+    if (lineCount <= 5 && /^\s*(return\s+|get\s+)/.test(code.split('\n')[1]?.trim() || '')) return true;
+
+    // Re-export: just exports something from another module
+    if (code.trim().startsWith('export {') || code.trim().startsWith('export *')) return true;
+
+    return false;
+  }
+
+  /** Pick the best dependency match: prefer same file > same dir > any */
+  private pickBestDep(candidates: IndexedChunk[], source: IndexedChunk): IndexedChunk {
+    if (candidates.length === 1) return candidates[0];
+
+    const sourceDir = source.filePath.replace(/\\/g, '/').replace(/\/[^/]+$/, '');
+
+    const scored = candidates.map(c => {
+      const cPath = c.filePath.replace(/\\/g, '/');
+      let proximity = 0;
+      if (cPath === source.filePath) proximity = 3;             // same file
+      else if (cPath.replace(/\/[^/]+$/, '') === sourceDir) proximity = 2;  // same dir
+      else if (cPath.split('/').slice(0, -2).join('/') === sourceDir.split('/').slice(0, -2).join('/')) proximity = 1; // sibling dir
+      return { chunk: c, proximity };
+    });
+
+    scored.sort((a, b) => b.proximity - a.proximity);
+    return scored[0].chunk;
+  }
+
+  /** Extract function/class signature (up to opening brace) for compact dep display */
+  private extractSignature(code: string): string | null {
+    const braceIdx = code.indexOf('{');
+    if (braceIdx > 0 && braceIdx < 500) {
+      return code.substring(0, braceIdx).trim();
+    }
+    // For arrow functions: up to =>
+    const arrowIdx = code.indexOf('=>');
+    if (arrowIdx > 0 && arrowIdx < 300) {
+      return code.substring(0, arrowIdx + 2).trim();
+    }
+    return null;
   }
 
   /** Estimate blast radius: how many symbols are affected if this symbol changes */

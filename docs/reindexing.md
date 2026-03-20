@@ -18,7 +18,7 @@ node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass" --data-dir ./da
 2. Filters by include/exclude patterns from `config/indexa.config.json`
 3. For each file: computes content hash → compares with stored hash
 4. **Skips unchanged files** — only re-parses files whose hash changed
-5. Re-parses changed files → extracts symbols → generates embeddings → stores
+5. Re-parses changed files → extracts symbols → generates ML embeddings (gte-small, 384-dim) → stores
 
 **When to use:**
 - First time indexing a project
@@ -82,6 +82,14 @@ Requires the Indexa server to be running (`node dist/cli/index.js serve`).
 
 ---
 
+### Method 5: VS Code Extension
+
+Best for: re-indexing from within the editor.
+
+Use the **Reindex** command in the VS Code extension (`indexa-vscode/`). This triggers a full re-index of the current workspace.
+
+---
+
 ## What Gets Indexed
 
 Controlled by `config/indexa.config.json`:
@@ -93,7 +101,8 @@ Controlled by `config/indexa.config.json`:
     "node_modules", "dist", ".git",
     "*.test.*", "*.spec.*", "*.stories.*",
     "public/react-shell/assets",
-    "public/Scripts",
+    "public/Scripts", "public/Scripts/",
+    "angular-mocks", "e2e/",
     "*.min.js", "*.bundle.js",
     "vendor.js", "polyfills.js"
   ]
@@ -110,7 +119,9 @@ Controlled by `config/indexa.config.json`:
 | `node_modules` | Third-party code |
 | `dist` | Compiled output |
 | `public/react-shell/assets` | Vite-minified bundles (single-letter function names) |
-| `public/Scripts` | Vendor libraries (Angular, jQuery, etc.) |
+| `public/Scripts`, `public/Scripts/` | Vendor libraries (Angular, jQuery, etc.) |
+| `angular-mocks` | Angular mock library — test infrastructure |
+| `e2e/` | End-to-end test directories |
 | `*.test.*`, `*.spec.*` | Test files |
 | `*.stories.*` | Storybook files |
 | `*.min.js`, `*.bundle.js` | Minified/bundled files |
@@ -147,7 +158,7 @@ This means running `index` is always safe — it converges to the correct state 
 
 | File | Size (typical) | Contents |
 |------|---------------|---------|
-| `data/embeddings.json` | 10-50 MB | All chunk metadata + embedding vectors (no inline code) |
+| `data/embeddings.json` | 10-50 MB | All chunk metadata + ML embedding vectors (384-dim, no inline code) |
 | `data/metadata.json` | < 1 MB | File path → content hash mapping |
 
 Both files are written atomically (write to `.tmp` then rename) to prevent corruption.

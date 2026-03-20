@@ -5,6 +5,7 @@ import { initProject } from './init';
 import { indexCommand, updateCommand } from './update';
 import { searchCommand, bundleCommand, flowCommand, explainCommand } from './search';
 import { cleanCommand, statsCommand } from './clean';
+import { setupCommand, doctorCommand } from './setup';
 import { startServer } from '../src/server/index';
 
 const program = new Command();
@@ -14,6 +15,23 @@ program
   .description('Indexa — AST-based codebase indexing with semantic + structural retrieval')
   .version('3.0.0');
 
+// ─── Primary: one-command setup ─────────────────────────────────────────────
+program
+  .command('setup [directory]')
+  .description('Full auto-setup: detect project → index → configure MCP → verify (< 60 seconds)')
+  .action(async (directory) => {
+    await setupCommand(directory);
+  });
+
+program
+  .command('doctor')
+  .description('Check Indexa health: index, embeddings, MCP config, server')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action(async (opts) => {
+    await doctorCommand({ dataDir: opts.dataDir });
+  });
+
+// ─── Init / Index / Update ─────────────────────────────────────────────────
 program
   .command('init')
   .description('Initialize Indexa project in the current directory')
@@ -147,4 +165,13 @@ program
     startServer({ port: parseInt(opts.port, 10) });
   });
 
-program.parse(process.argv);
+// Default: show help if no command provided
+if (process.argv.length <= 2) {
+  console.log('');
+  console.log('  Quick start:  indexa setup');
+  console.log('  Health check: indexa doctor');
+  console.log('');
+  program.help();
+} else {
+  program.parse(process.argv);
+}

@@ -18,7 +18,7 @@ node dist/cli/index.js init
 
 ## `index`
 
-Full index of a codebase directory.
+Full index of a codebase directory. Uses local ML embeddings (Transformers.js, gte-small, 384-dim) — no API keys needed.
 
 ```powershell
 node dist/cli/index.js index "D:\path\to\project"
@@ -43,7 +43,7 @@ node dist/cli/index.js update
 
 ## `bundle` (PRIMARY)
 
-Build a context bundle: search → pack symbols + dependencies + connections within token budget.
+Build a context bundle: search → pack symbols + dependencies + connections within token budget. Enforces max 2 chunks per file for diversity.
 
 ```powershell
 node dist/cli/index.js bundle "vendor service area"
@@ -99,7 +99,7 @@ node dist/cli/index.js explain "authentication" --token-budget 1500
 
 ## `search`
 
-Search the indexed codebase with auto-routing.
+Search the indexed codebase with auto-routing. Query router: identifiers → symbol lookup, short queries → BM25 keyword, else → hybrid (35% semantic + 25% BM25 + 15% name match + 25% path match).
 
 ```powershell
 node dist/cli/index.js search "VendorService" --top-k 3
@@ -117,7 +117,7 @@ node dist/cli/index.js search "service" --token-budget 500
 
 ## `serve`
 
-Start the REST API server.
+Start the REST API server. Exposes 12 endpoints.
 
 ```powershell
 node dist/cli/index.js serve --port 3000

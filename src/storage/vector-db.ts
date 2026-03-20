@@ -50,10 +50,24 @@ export class VectorDB {
     );
   }
 
-  /** Find chunks by symbol name (case-insensitive partial match) */
+  /** Find chunks by symbol name. Prefers exact match → prefix/suffix → contains. */
   findByName(name: string): IndexedChunk[] {
     const lower = name.toLowerCase();
-    return this.getAll().filter(c => c.name.toLowerCase().includes(lower));
+    const all = this.getAll();
+
+    // Tier 1: exact match (highest confidence)
+    const exact = all.filter(c => c.name.toLowerCase() === lower);
+    if (exact.length > 0) return exact;
+
+    // Tier 2: starts with or ends with (e.g. "getUser" matches "getUsers")
+    const prefixSuffix = all.filter(c => {
+      const n = c.name.toLowerCase();
+      return n.startsWith(lower) || n.endsWith(lower);
+    });
+    if (prefixSuffix.length > 0) return prefixSuffix;
+
+    // Tier 3: contains (broadest, lowest confidence)
+    return all.filter(c => c.name.toLowerCase().includes(lower));
   }
 
   /** Get all unique file paths in the index */

@@ -89,7 +89,7 @@ export class SearchController {
         return;
       }
 
-      const results = await this.hybridSearch.directSearch(query, 15);
+      const results = await this.hybridSearch.directSearch(query, 25);
       const stitched = await this.explainEngine.stitch(results, tokenBudget);
 
       logger.info(`Context bundle "${query}": ${stitched.symbols.length} symbols, ${stitched.connections.length} connections`);

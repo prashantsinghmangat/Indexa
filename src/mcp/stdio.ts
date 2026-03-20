@@ -92,13 +92,20 @@ server.tool(
     const cached = cache.get<string>(cacheKey);
     if (cached) return { content: [{ type: 'text' as const, text: cached }] };
 
-    const results = await search.directSearch(query, 15);
+    const queryIntent = search.getQueryIntent(query);
+    const results = await search.directSearch(query, 25);
     if (results.length === 0) {
       return { content: [{ type: 'text' as const, text: `No results for "${query}".` }] };
     }
 
     const stitched = await explainEngine.stitch(results, tokenBudget);
     const lines: string[] = [];
+
+    // Show intent classification so the LLM knows how results were selected
+    if (queryIntent.confidence > 0) {
+      lines.push(`Intent: ${queryIntent.intent} (${(queryIntent.confidence * 100).toFixed(0)}% confidence) | Subject: "${queryIntent.subject}"`);
+      lines.push('');
+    }
 
     for (const sym of stitched.symbols) {
       lines.push(`=== [${sym.type}] ${sym.name} ===`);

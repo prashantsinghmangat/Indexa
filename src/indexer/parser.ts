@@ -289,10 +289,44 @@ export class Parser {
       for (const m of importMatches) {
         deps.push(m[1] || m[2]);
       }
+      const CALL_IGNORE = new Set([
+        // Language keywords
+        'if', 'for', 'while', 'switch', 'catch', 'function', 'return', 'console',
+        'typeof', 'instanceof', 'void', 'delete', 'throw', 'new', 'class', 'super',
+        'await', 'async', 'yield', 'import', 'export', 'require',
+        // Built-in array/string/object methods (these match everywhere and are never real deps)
+        'push', 'pop', 'shift', 'unshift', 'map', 'filter', 'reduce', 'forEach',
+        'find', 'some', 'every', 'includes', 'indexOf', 'lastIndexOf', 'slice', 'splice',
+        'join', 'split', 'replace', 'replaceAll', 'trim', 'trimStart', 'trimEnd',
+        'match', 'matchAll', 'search', 'test', 'exec', 'sort', 'reverse', 'flat', 'flatMap',
+        'concat', 'fill', 'from', 'of', 'entries', 'keys', 'values', 'at',
+        'toString', 'valueOf', 'toFixed', 'toPrecision', 'toLocaleString',
+        'startsWith', 'endsWith', 'padStart', 'padEnd', 'repeat', 'charAt', 'charCodeAt',
+        'substring', 'substr', 'toLowerCase', 'toUpperCase', 'localeCompare',
+        // Object/JSON/Math
+        'assign', 'freeze', 'create', 'defineProperty', 'getOwnPropertyNames',
+        'hasOwnProperty', 'stringify', 'parse', 'abs', 'ceil', 'floor', 'round',
+        'max', 'min', 'random', 'sqrt', 'pow', 'log',
+        // Promise/async
+        'resolve', 'reject', 'then', 'catch', 'finally', 'all', 'race', 'allSettled',
+        // DOM/Browser
+        'querySelector', 'querySelectorAll', 'getElementById', 'createElement',
+        'addEventListener', 'removeEventListener', 'appendChild', 'removeChild',
+        'getAttribute', 'setAttribute', 'preventDefault', 'stopPropagation',
+        // Timers/globals
+        'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval', 'requestAnimationFrame',
+        'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'encodeURIComponent', 'decodeURIComponent',
+        // Misc common
+        'apply', 'call', 'bind', 'next', 'done', 'emit', 'on', 'once', 'off',
+        'log', 'warn', 'error', 'info', 'debug', 'trace', 'assert',
+        'describe', 'it', 'expect', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll',
+        'vi', 'jest', 'mock', 'spyOn',
+      ]);
       const callMatches = text.matchAll(/(?<!\w)([a-zA-Z_]\w*)\s*\(/g);
       for (const m of callMatches) {
         const name = m[1];
-        if (!['if', 'for', 'while', 'switch', 'catch', 'function', 'return', 'console'].includes(name)) {
+        // Skip builtins/common methods, and very short names (likely variables, not real deps)
+        if (!CALL_IGNORE.has(name) && name.length > 2) {
           deps.push(name);
         }
       }

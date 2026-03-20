@@ -2,10 +2,13 @@
 
 Code intelligence via the Model Context Protocol (MCP). Not just search — Indexa explains code, traces execution flows, and assembles context bundles for LLMs.
 
-Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 17). Returns minimal, relevant code — never full files.
+Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 17). Returns minimal, relevant code — never full files. **Proven 51% token reduction** vs manual file reading.
+
+**Free forever** — no API keys needed, runs locally, offline-capable. Uses local ML embeddings via [Transformers.js](https://huggingface.co/docs/transformers.js) (gte-small model, 384 dimensions).
 
 ## What's New in v3.0
 
+- **Local ML embeddings** — Transformers.js with gte-small model (384-dim vectors), no API keys needed
 - **`indexa_context_bundle`** — PRIMARY tool. Returns symbols + code + dependencies + connections within a token budget
 - **`indexa_flow`** — Trace execution flow across functions/files with depth control
 - **`indexa_explain`** — Human-readable code explanation from actual symbols
@@ -14,7 +17,9 @@ Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 
 - **Byte-offset retrieval** — Code read from source files via O(1) seek, not stored in index
 - **Stable symbol IDs** — `filePath::name#type`, human-readable and bookmarkable
 - **BM25 keyword search** — With stop-word filtering and path matching
+- **File diversity** — Max 2 chunks per file in context bundles to prevent monopolization
 - **Cleaned index** — Auto-excludes minified builds, storybook files, vendor scripts
+- **VS Code extension** — Native editor integration at `indexa-vscode/`
 
 ## Quick Start
 
@@ -28,6 +33,21 @@ node dist/cli/index.js search "vendor pricing"
 ```
 
 See [Quick Start Guide](docs/quick-start.md) for full details.
+
+## VS Code Extension
+
+A native VS Code extension is available at `indexa-vscode/`. Install it for in-editor code intelligence.
+
+**Commands:**
+
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| **Ask Indexa** | `Ctrl+Shift+I` | Query Indexa from the editor |
+| **Explain This** | — | Explain selected code |
+| **Show Flow** | — | Trace execution flow from selection |
+| **Find References** | — | Find all references to selected symbol |
+| **Reindex** | — | Re-index the current workspace |
+| **Health Check** | — | Verify Indexa server status |
 
 ## Use with Claude Code (MCP)
 
@@ -104,7 +124,9 @@ Controlled by `config/indexa.config.json`:
     "node_modules", "dist", ".git",
     "*.test.*", "*.spec.*", "*.stories.*",
     "public/react-shell/assets", "public/Scripts",
-    "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js"
+    "public/Scripts/", "angular-mocks",
+    "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js",
+    "e2e/"
   ]
 }
 ```
@@ -136,6 +158,7 @@ node dist/cli/index.js serve --port 8080                   # Custom port
 | GET | `/api/file?path=` | All chunks for a file |
 | GET | `/api/outline?path=` | File symbol outline |
 | GET | `/api/references?name=` | References + blast radius |
+| GET | `/api/blast-radius?name=` | Change impact analysis |
 | POST | `/api/update` | Incremental re-index |
 | GET | `/api/stats` | Index statistics |
 | GET | `/api/health` | Health check |
@@ -149,7 +172,8 @@ node dist/cli/index.js serve --port 8080                   # Custom port
 | [CLI Reference](docs/cli-reference.md) | All commands and options |
 | [API Reference](docs/api-reference.md) | REST endpoint specs with examples |
 | [MCP Integration](docs/mcp-integration.md) | Claude Code setup, all 9 tools, CLAUDE.md template |
-| [Configuration](docs/configuration.md) | Config fields, exclude patterns, custom embeddings |
+| [Configuration](docs/configuration.md) | Config fields, exclude patterns, embeddings |
+| [Re-indexing](docs/reindexing.md) | How to keep the index fresh |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and fixes |
 
 ## Architecture
@@ -159,14 +183,15 @@ indexa/
 ├── src/
 │   ├── intelligence/    # Flow engine, explain engine, LRU cache
 │   ├── retrieval/       # Semantic, BM25 keyword, hybrid + query router, graph
-│   ├── indexer/         # Parser (ts-morph), chunker, embedder, updater
+│   ├── indexer/         # Parser (ts-morph), chunker, embedder (Transformers.js), updater
 │   ├── storage/         # JSON vector + metadata stores (atomic writes)
 │   ├── server/          # Express REST API
 │   ├── mcp/            # MCP stdio transport (9 tools)
 │   ├── types/          # TypeScript interfaces
 │   └── utils/          # BM25, byte-offset, query routing, stop words
 ├── cli/                # CLI commands (Commander)
-├── docs/               # Documentation (7 guides)
+├── indexa-vscode/      # VS Code extension
+├── docs/               # Documentation (8 guides)
 ├── sample-code/        # Test data
 ├── config/             # indexa.config.json
 └── data/               # Generated index (byte-offset, no inline code)
@@ -176,16 +201,19 @@ indexa/
 
 | Decision | Rationale |
 |----------|-----------|
+| **Local ML embeddings** | Transformers.js with gte-small (384-dim). No API keys, runs offline, high-quality semantic vectors. |
 | **Byte-offset retrieval** | Code read from source via O(1) seek, not stored in index. Keeps index small. |
 | **Stable symbol IDs** | `filePath::name#type` — human-readable, no UUIDs. |
 | **Query routing** | Identifiers → symbol lookup, short → BM25, natural language → hybrid. |
-| **Hybrid scoring** | 15% semantic + 45% BM25 + 20% name match + 20% path match. Keyword-dominant because hash embeddings are unreliable. |
+| **Hybrid scoring** | 35% semantic + 25% BM25 + 15% name match + 25% path match. Balanced weights leveraging ML embeddings. |
+| **File diversity** | Max 2 chunks per file in context bundles to prevent any single file from monopolizing results. |
 | **Stop-word filtering** | Common terms (`system`, `data`, `list`, `type`, `get`, `set`) excluded from BM25 to reduce noise. |
 | **Token budgeting** | Pack results until budget exhausted. Typical: 1500-3000 tokens. |
 | **LRU cache** | 100 entries, 5min TTL. Invalidated on re-index. |
 | **Context stitching** | Connections between symbols: calls, imports, depends_on. |
-| **Exclude patterns** | Minified builds, storybook, vendor scripts, test files — all auto-excluded. |
+| **Exclude patterns** | Minified builds, storybook, vendor scripts, test files, angular-mocks, e2e — all auto-excluded. |
 | **Logger → stderr** | All `console.error()` so stdout stays clean for MCP JSON-RPC protocol. |
+| **51% token reduction** | Proven savings vs manual file reading — returns only relevant code fragments. |
 
 ## License
 

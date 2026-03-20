@@ -5,9 +5,14 @@ node_modules/
 dist/
 
 # Indexa generated data
-mcp-server/data/embeddings.json
-mcp-server/data/metadata.json
-!mcp-server/data/.gitkeep
+data/embeddings.json
+data/metadata.json
+!data/.gitkeep
+
+# VS Code extension build artifacts
+indexa-vscode/*.vsix
+indexa-vscode/out/
+indexa-vscode/node_modules/
 
 # Environment
 .env

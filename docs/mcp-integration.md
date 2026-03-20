@@ -1,6 +1,6 @@
 # Indexa v3.0 — MCP Integration with Claude Code
 
-Indexa provides 9 MCP tools including execution flow tracing, code explanation, and context-stitched bundles.
+Indexa provides 9 MCP tools including execution flow tracing, code explanation, and context-stitched bundles. Proven 51% token reduction vs manual file reading.
 
 ## Setup
 
@@ -18,6 +18,8 @@ npm run build
 node dist/cli/index.js init
 node dist/cli/index.js index "D:\path\to\your\project"
 ```
+
+Indexing uses local ML embeddings (Transformers.js, gte-small, 384-dim) — no API keys needed.
 
 ### 3. Configure Claude Code
 
@@ -85,7 +87,7 @@ Add this to the **top** of your project's `CLAUDE.md` to make Claude auto-use In
 
 ### `indexa_context_bundle` (PRIMARY)
 
-The main tool. Returns relevant symbols + source code + dependencies + connections, all packed within a token budget.
+The main tool. Returns relevant symbols + source code + dependencies + connections, all packed within a token budget. Enforces max 2 chunks per file for diversity.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -112,7 +114,7 @@ Human-readable explanation of a code area. Built from actual symbols — no hall
 
 ### `indexa_search`
 
-Auto-routed search. Detects if query is an identifier, keyword, or natural language and routes accordingly.
+Auto-routed search. Query router detects if query is an identifier, keyword, or natural language and routes accordingly. Hybrid scoring: 35% semantic + 25% BM25 + 15% name match + 25% path match.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
