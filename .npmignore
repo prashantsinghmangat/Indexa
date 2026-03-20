@@ -1,0 +1,26 @@
+# Source (dist/ is published, not src/)
+src/
+cli/
+indexa-vscode/
+sample-code/
+docs/
+
+# Data (user generates their own)
+data/embeddings.json
+data/metadata.json
+
+# Dev files
+.github/
+.claude/
+.vscode/
+*.tsbuildinfo
+tsconfig.json
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+fullcode.zip

@@ -1,13 +1,39 @@
 {
-  "name": "indexa",
+  "name": "indexa-mcp",
   "version": "3.1.0",
-  "description": "Indexa — Code intelligence via MCP. Context bundles, execution flow tracing, code explanation, BM25 + semantic search, byte-offset retrieval, dependency graphs, and LRU query cache.",
+  "description": "Local-first AI code intelligence. Indexes your codebase, returns minimal context bundles for LLMs. 50-70% token reduction. MCP + VS Code + CLI.",
   "main": "dist/src/server/index.js",
   "bin": {
     "indexa": "dist/cli/index.js"
   },
+  "files": [
+    "dist/",
+    "config/",
+    "data/.gitkeep",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "code-intelligence",
+    "llm",
+    "context",
+    "token-reduction",
+    "semantic-search",
+    "codebase-indexer",
+    "claude",
+    "ast",
+    "embeddings"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prashantsinghmangat/Indexa"
+  },
+  "author": "Prashant Singh",
+  "license": "MIT",
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "start": "node dist/src/server/index.js",
     "dev": "ts-node src/server/index.ts",
     "cli": "ts-node cli/index.ts",

@@ -244,20 +244,42 @@ server.tool(
       return { content: [{ type: 'text' as const, text: `No results for "${query}".` }] };
     }
 
-    const output = results.map((r, i) => {
+    // Cap output to prevent overwhelming the LLM context.
+    // Show summary + compact code preview per result.
+    const MAX_CODE_BYTES = 2000;  // Read at most 2KB per chunk
+    const MAX_CODE_LINES = 12;
+    const MAX_RESULTS = 10;
+    const MAX_TOTAL_CHARS = 12000;
+    let totalChars = 0;
+
+    const capped = results.slice(0, MAX_RESULTS);
+    const output = capped.map((r, i) => {
+      if (totalChars > MAX_TOTAL_CHARS) return null;
+
       const score = (r.score * 100).toFixed(1);
-      const code = readCodeAtOffset(r.chunk.filePath, r.chunk.byteOffset, r.chunk.byteLength);
-      return [
+      // Cap byte read to prevent loading huge minified chunks
+      const readLen = Math.min(r.chunk.byteLength, MAX_CODE_BYTES);
+      const code = readCodeAtOffset(r.chunk.filePath, r.chunk.byteOffset, readLen);
+      const lines = code ? code.split('\n') : [];
+      const codePreview = lines.length > 0
+        ? lines.slice(0, MAX_CODE_LINES).join('\n') + (lines.length > MAX_CODE_LINES ? `\n... (+${lines.length - MAX_CODE_LINES} lines)` : '')
+        : '(source unavailable)';
+
+      const entry = [
         `--- Result ${i + 1} (${score}%) ---`,
-        `ID: ${r.chunk.id}`,
         `[${r.chunk.type}] ${r.chunk.name}`,
         `File: ${r.chunk.filePath}:${r.chunk.startLine}-${r.chunk.endLine}`,
         `Summary: ${r.chunk.summary}`,
-        code ? `\`\`\`\n${code}\n\`\`\`` : '(source unavailable)',
+        `\`\`\`\n${codePreview}\n\`\`\``,
       ].join('\n');
-    }).join('\n\n');
 
-    return { content: [{ type: 'text' as const, text: output }] };
+      totalChars += entry.length;
+      return entry;
+    }).filter(Boolean).join('\n\n');
+
+    const shown = output.split('--- Result').length - 1;
+    const footer = `\n\n${shown}/${results.length} results for "${query}" (~${totalChars} chars)`;
+    return { content: [{ type: 'text' as const, text: output + footer }] };
   }
 );
 

@@ -6,5 +6,5 @@
   "defaultTopK": 5,
   "defaultTokenBudget": 4000,
   "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
-  "excludePatterns": ["node_modules", "dist", ".git", "*.test.*", "*.spec.*", "*.stories.*", "public/react-shell/assets", "public/Scripts", "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js"]
+  "excludePatterns": ["node_modules", "dist", ".git", ".next", "_next", "out", ".nuxt", ".output", ".vercel", "build", "coverage", "*.test.*", "*.spec.*", "*.stories.*", "public/react-shell/assets", "public/Scripts", "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js", "angular-mocks", "e2e", "chunks"]
 }

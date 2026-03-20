@@ -330,6 +330,16 @@ export class Parser {
           deps.push(name);
         }
       }
+
+      // Detect JSX component usage: <ComponentName or <ComponentName>
+      // PascalCase only — lowercase tags are HTML elements, not components
+      const jsxMatches = text.matchAll(/<([A-Z][a-zA-Z0-9]+)[\s/>]/g);
+      for (const m of jsxMatches) {
+        const name = m[1];
+        if (!CALL_IGNORE.has(name) && name.length > 2) {
+          deps.push(name);
+        }
+      }
     } catch {
       // Silently handle extraction errors
     }
