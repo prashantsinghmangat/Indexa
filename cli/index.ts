@@ -6,6 +6,7 @@ import { indexCommand, updateCommand } from './update';
 import { searchCommand, bundleCommand, flowCommand, explainCommand } from './search';
 import { cleanCommand, statsCommand } from './clean';
 import { setupCommand, doctorCommand } from './setup';
+import { benchmarkCommand } from './benchmark';
 import { startServer } from '../src/server/index';
 
 const program = new Command();
@@ -126,6 +127,20 @@ program
   .option('--data-dir <path>', 'Custom data directory')
   .action((opts) => {
     statsCommand({ dataDir: opts.dataDir });
+  });
+
+program
+  .command('benchmark')
+  .description('Compare token usage: Indexa context bundles vs reading raw files')
+  .option('-q, --query <query>', 'Custom query (repeatable)', (val: string, arr: string[]) => { arr.push(val); return arr; }, [] as string[])
+  .option('-b, --token-budget <number>', 'Token budget per query', '3000')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action(async (opts) => {
+    await benchmarkCommand({
+      dataDir: opts.dataDir,
+      queries: opts.query?.length > 0 ? opts.query : undefined,
+      tokenBudget: parseInt(opts.tokenBudget, 10),
+    });
   });
 
 program

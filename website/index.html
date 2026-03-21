@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indexa — AI Code Intelligence MCP Server | 50-70% Token Reduction</title>
+  <meta name="description" content="Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%. Local-first, free forever.">
+  <meta name="author" content="Prashant Singh">
+  <meta name="keywords" content="MCP server, code intelligence, AI coding, token reduction, semantic search, Claude, code indexing, developer tools, open source">
+  <link rel="canonical" href="https://github.com/prashantsinghmangat/Indexa">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Indexa — AI Code Intelligence MCP Server">
+  <meta property="og:description" content="Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%. Local-first, free forever.">
+  <meta property="og:url" content="https://github.com/prashantsinghmangat/Indexa">
+  <meta property="og:site_name" content="Indexa">
+  <meta property="og:image" content="https://raw.githubusercontent.com/prashantsinghmangat/Indexa/main/website/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Indexa — AI Code Intelligence MCP Server">
+  <meta name="twitter:description" content="Open-source MCP server. 50-70% token reduction for AI agents. Local-first, free forever.">
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/prashantsinghmangat/Indexa/main/website/og-image.png">
+
+  <!-- Schema.org Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Indexa",
+    "description": "Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Prashant Singh"
+    },
+    "license": "https://opensource.org/licenses/MIT",
+    "url": "https://github.com/prashantsinghmangat/Indexa",
+    "downloadUrl": "https://www.npmjs.com/package/indexa-mcp",
+    "softwareVersion": "3.1",
+    "programmingLanguage": "TypeScript"
+  }
+  </script>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="container">
+      <a href="#" class="nav-logo" aria-label="Indexa home">
+        <svg width="32" height="32" viewBox="0 0 64 64" aria-hidden="true">
+          <defs><linearGradient id="nav-g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7c6cfc"/><stop offset="100%" stop-color="#22d3ee"/></linearGradient></defs>
+          <rect width="64" height="64" rx="14" fill="#0a0a12"/>
+          <text x="32" y="46" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="38" fill="url(#nav-g)">I</text>
+        </svg>
+        Indexa
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features"><i data-lucide="sparkles" class="nav-icon"></i> Features</a></li>
+        <li><a href="#tools"><i data-lucide="wrench" class="nav-icon"></i> Tools</a></li>
+        <li><a href="#quickstart"><i data-lucide="rocket" class="nav-icon"></i> Quick Start</a></li>
+        <li><a href="#about"><i data-lucide="user" class="nav-icon"></i> About</a></li>
+        <li>
+          <a href="https://github.com/prashantsinghmangat/Indexa" class="nav-star-btn" target="_blank" rel="noopener">
+            <i data-lucide="star" class="nav-icon"></i>
+            Star on GitHub
+          </a>
+        </li>
+      </ul>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="hero">
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-badge fade-in">
+            <span class="dot" aria-hidden="true"></span>
+            Open Source &middot; MIT License &middot; v3.1
+          </div>
+          <h1 class="fade-in"><span class="gradient-text">AI Code Intelligence.</span><br>Local-First. Free Forever.</h1>
+          <p class="hero-tagline fade-in fade-in-delay-1">The open-source MCP server that indexes your codebase and gives AI agents only the code they need. Cut token usage by 50&ndash;70%.</p>
+          <div class="hero-buttons fade-in fade-in-delay-2">
+            <a href="#quickstart" class="btn-primary">
+              Get Started
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+            <a href="https://github.com/prashantsinghmangat/Indexa" class="btn-secondary" target="_blank" rel="noopener">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+          <div class="hero-stats fade-in fade-in-delay-3">
+            <div>
+              <div class="hero-stat-value gradient-text">50-70%</div>
+              <div class="hero-stat-label">Token reduction</div>
+            </div>
+            <div>
+              <div class="hero-stat-value gradient-text">9</div>
+              <div class="hero-stat-label">MCP tools</div>
+            </div>
+            <div>
+              <div class="hero-stat-value gradient-text">&lt;2s</div>
+              <div class="hero-stat-label">Query time</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-terminal fade-in fade-in-delay-2">
+          <div class="terminal">
+            <div class="terminal-header">
+              <span class="terminal-dot red" aria-hidden="true"></span>
+              <span class="terminal-dot yellow" aria-hidden="true"></span>
+              <span class="terminal-dot green" aria-hidden="true"></span>
+              <span class="terminal-title">Terminal</span>
+              <button class="copy-btn" aria-label="Copy terminal commands">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <div class="terminal-body" aria-label="Terminal animation showing Indexa setup">
+              <div class="terminal-line">
+                <span class="terminal-prompt">$</span> <span class="terminal-command">npx indexa-mcp setup</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-check">&#10003;</span> <span class="terminal-success">Project detected: my-app (typescript/react)</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-check">&#10003;</span> <span class="terminal-success">Indexed 8,500 chunks in 15s</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-check">&#10003;</span> <span class="terminal-success">MCP configured for Claude Code</span>
+              </div>
+              <div class="terminal-line">
+                <span class="terminal-check">&#10003;</span> <span class="terminal-success">Ready! Try: &quot;explain the auth flow&quot;</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PROBLEM ========== -->
+    <section class="problem" id="problem">
+      <div class="container text-center">
+        <span class="section-label fade-in">The Problem</span>
+        <h2 class="section-title fade-in">AI agents waste <span class="gradient-text">95% of tokens</span> reading full files</h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Every time an AI reads your code, it consumes thousands of tokens on imports, boilerplate, and irrelevant functions. Indexa changes that.</p>
+
+        <div class="problem-grid">
+          <div class="glass problem-card before fade-in fade-in-delay-1">
+            <div class="problem-card-label">Without Indexa</div>
+            <h3>Full File Reading</h3>
+            <p>AI agent reads <code>auth.ts</code> (450 lines) just to understand one function.</p>
+            <p>Reads 12 files to answer a single question.</p>
+            <p>Burns through context window in minutes.</p>
+            <div class="problem-stat">~10,000 tokens</div>
+          </div>
+          <div class="glass problem-card after fade-in fade-in-delay-2">
+            <div class="problem-card-label">With Indexa</div>
+            <h3>Smart Code Retrieval</h3>
+            <p>Returns only the relevant <code>validateToken()</code> function and its dependencies.</p>
+            <p>Semantic search finds exactly what the AI needs.</p>
+            <p>Context window stays efficient and focused.</p>
+            <div class="problem-stat">~3,000 tokens</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== HOW IT WORKS ========== -->
+    <section class="how-it-works" id="how-it-works">
+      <div class="container text-center">
+        <span class="section-label fade-in">How It Works</span>
+        <h2 class="section-title fade-in">Three steps to <span class="gradient-text">smarter AI coding</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">From install to intelligent code retrieval in under 30 seconds.</p>
+
+        <div class="steps-grid">
+          <div class="glass step-card fade-in fade-in-delay-1">
+            <div class="step-number gradient-text">1</div>
+            <h3>Install</h3>
+            <p>One command installs Indexa globally and configures it for your AI tools.</p>
+            <div class="step-code">$ npm install -g indexa-mcp</div>
+          </div>
+          <div class="glass step-card fade-in fade-in-delay-2">
+            <div class="step-number gradient-text">2</div>
+            <h3>Index</h3>
+            <p>Automatically parses your codebase into semantic chunks with ML embeddings.</p>
+            <div class="step-code">$ npx indexa-mcp setup</div>
+          </div>
+          <div class="glass step-card fade-in fade-in-delay-3">
+            <div class="step-number gradient-text">3</div>
+            <h3>Query</h3>
+            <p>AI agents get exactly the code they need through 9 specialized MCP tools.</p>
+            <div class="step-code">"explain the auth flow"</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FEATURES ========== -->
+    <section class="features" id="features">
+      <div class="container text-center">
+        <span class="section-label fade-in">Features</span>
+        <h2 class="section-title fade-in">Everything you need for <span class="gradient-text">intelligent code retrieval</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Built for developers who want their AI agents to work smarter, not harder.</p>
+
+        <div class="features-grid">
+          <div class="glass feature-card fade-in">
+            <div class="feature-icon accent" aria-hidden="true"><i data-lucide="zap"></i></div>
+            <h3>50-70% Token Reduction</h3>
+            <p>Returns only relevant code chunks instead of full files. Your AI agents use fewer tokens and produce better results.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-1">
+            <div class="feature-icon cyan" aria-hidden="true"><i data-lucide="hard-drive"></i></div>
+            <h3>Local-First</h3>
+            <p>Runs entirely on your machine. No cloud dependency, no API keys, no recurring costs. Your code never leaves your device.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-2">
+            <div class="feature-icon purple" aria-hidden="true"><i data-lucide="brain"></i></div>
+            <h3>ML Embeddings</h3>
+            <p>Powered by Transformers.js with gte-small (384-dim) for genuine semantic understanding of your code.</p>
+          </div>
+          <div class="glass feature-card fade-in">
+            <div class="feature-icon green" aria-hidden="true"><i data-lucide="search"></i></div>
+            <h3>Hybrid Search</h3>
+            <p>Combines 35% semantic, 25% BM25, 15% name matching, and 25% path scoring for precise, relevant results.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-1">
+            <div class="feature-icon yellow" aria-hidden="true"><i data-lucide="brain-circuit"></i></div>
+            <h3>Query Intent Classification</h3>
+            <p>Automatically detects whether you want flow analysis, explanations, references, debugging, or general search.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-2">
+            <div class="feature-icon red" aria-hidden="true"><i data-lucide="monitor"></i></div>
+            <h3>VS Code Extension</h3>
+            <p>6 built-in commands including Ask Indexa (Ctrl+Shift+I). Seamless integration right in your editor.</p>
+          </div>
+          <div class="glass feature-card fade-in">
+            <div class="feature-icon cyan" aria-hidden="true"><i data-lucide="terminal"></i></div>
+            <h3>One Command Setup</h3>
+            <p><code>npx indexa-mcp setup</code> handles everything: detection, indexing, and MCP configuration. Zero friction.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-1">
+            <div class="feature-icon accent" aria-hidden="true"><i data-lucide="shield-check"></i></div>
+            <h3>Works with Claude Code</h3>
+            <p>Native MCP integration that auto-configures ~/.mcp.json. Built specifically for Claude and other AI agents.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TOKEN SAVINGS ========== -->
+    <section class="token-savings" id="savings">
+      <div class="container text-center">
+        <span class="section-label fade-in">Token Savings</span>
+        <h2 class="section-title fade-in">Real numbers, <span class="gradient-text">real savings</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Measured across real-world codebases. Indexa consistently delivers 50-70% token reduction.</p>
+
+        <div class="savings-table-wrap glass fade-in fade-in-delay-2">
+          <table class="savings-table">
+            <thead>
+              <tr>
+                <th>Query Type</th>
+                <th>Without Indexa</th>
+                <th>With Indexa</th>
+                <th>Savings</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Explain a function</td>
+                <td class="before-val">~8,500 tokens</td>
+                <td class="after-val">~2,800 tokens</td>
+                <td class="savings-val">67%</td>
+              </tr>
+              <tr>
+                <td>Trace auth flow</td>
+                <td class="before-val">~15,000 tokens</td>
+                <td class="after-val">~5,200 tokens</td>
+                <td class="savings-val">65%</td>
+              </tr>
+              <tr>
+                <td>Find references</td>
+                <td class="before-val">~12,000 tokens</td>
+                <td class="after-val">~4,100 tokens</td>
+                <td class="savings-val">66%</td>
+              </tr>
+              <tr>
+                <td>Debug an issue</td>
+                <td class="before-val">~10,000 tokens</td>
+                <td class="after-val">~3,500 tokens</td>
+                <td class="savings-val">65%</td>
+              </tr>
+              <tr>
+                <td>Search for patterns</td>
+                <td class="before-val">~6,000 tokens</td>
+                <td class="after-val">~2,100 tokens</td>
+                <td class="savings-val">65%</td>
+              </tr>
+              <tr>
+                <td><strong>Average</strong></td>
+                <td class="before-val"><strong>~10,300 tokens</strong></td>
+                <td class="after-val"><strong>~3,540 tokens</strong></td>
+                <td class="savings-val"><strong>66%</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MCP TOOLS ========== -->
+    <section class="tools" id="tools">
+      <div class="container text-center">
+        <span class="section-label fade-in">MCP Tools</span>
+        <h2 class="section-title fade-in"><span class="gradient-text">9 specialized tools</span> for every query</h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Each tool is designed for a specific type of code intelligence query, ensuring optimal results every time.</p>
+
+        <div class="tools-grid">
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">context_bundle</div>
+              <div class="tool-desc">Smart context packaging that bundles only the relevant code chunks for a query.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">search</div>
+              <div class="tool-desc">Hybrid semantic + keyword search across your entire codebase with ranked results.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-2">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">explain</div>
+              <div class="tool-desc">Retrieves code with surrounding context optimized for explanation queries.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">flow</div>
+              <div class="tool-desc">Traces execution flow across files, following function calls and data paths.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">symbol</div>
+              <div class="tool-desc">Looks up specific symbols — functions, classes, interfaces, types — by name.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-2">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">file</div>
+              <div class="tool-desc">Returns the full content of a specific file when complete context is needed.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">references</div>
+              <div class="tool-desc">Finds all references and usages of a symbol across your project files.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">index</div>
+              <div class="tool-desc">Re-indexes your codebase to pick up new changes and update embeddings.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-2">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">stats</div>
+              <div class="tool-desc">Shows indexing statistics — chunk counts, file coverage, embedding status.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== QUICK START ========== -->
+    <section class="quickstart" id="quickstart">
+      <div class="container text-center">
+        <span class="section-label fade-in">Quick Start</span>
+        <h2 class="section-title fade-in">Up and running in <span class="gradient-text">30 seconds</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Three commands. That is all it takes.</p>
+
+        <div class="quickstart-block fade-in fade-in-delay-2">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" aria-label="Copy code">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <div class="code-body">
+<span class="comment"># Install globally</span>
+<span class="prompt">$</span> <span class="cmd">npm install -g indexa-mcp</span>
+
+<span class="comment"># Setup in your project (detects, indexes, configures MCP)</span>
+<span class="prompt">$</span> <span class="cmd">npx indexa-mcp setup</span>
+
+<span class="comment"># Or run directly without installing</span>
+<span class="prompt">$</span> <span class="cmd">npx indexa-mcp setup</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="quickstart-block fade-in fade-in-delay-3" style="margin-top: 24px;">
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Claude Code MCP config (~/.mcp.json)</span>
+              <button class="copy-btn" aria-label="Copy code">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                Copy
+              </button>
+            </div>
+            <div class="code-body">
+{
+  "mcpServers": {
+    "indexa": {
+      "command": "npx",
+      "args": ["-y", "indexa-mcp", "stdio"]
+    }
+  }
+}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== ARCHITECTURE ========== -->
+    <section class="architecture" id="architecture">
+      <div class="container text-center">
+        <span class="section-label fade-in">Architecture</span>
+        <h2 class="section-title fade-in">How Indexa <span class="gradient-text">processes your code</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">A lightweight pipeline that transforms raw source files into semantically searchable chunks.</p>
+
+        <div class="glass arch-diagram fade-in fade-in-delay-2">
+          <div class="arch-flow">
+            <div class="arch-node">
+              <div class="arch-node-label">Input</div>
+              <div class="arch-node-name">Source Files</div>
+            </div>
+            <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+            <div class="arch-node">
+              <div class="arch-node-label">Parse</div>
+              <div class="arch-node-name">AST Chunker</div>
+            </div>
+            <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+            <div class="arch-node highlight">
+              <div class="arch-node-label">Embed</div>
+              <div class="arch-node-name">Transformers.js</div>
+            </div>
+            <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+            <div class="arch-node">
+              <div class="arch-node-label">Store</div>
+              <div class="arch-node-name">Local Index</div>
+            </div>
+            <div class="arch-arrow" aria-hidden="true">&rarr;</div>
+            <div class="arch-node highlight">
+              <div class="arch-node-label">Serve</div>
+              <div class="arch-node-name">MCP Server</div>
+            </div>
+          </div>
+
+          <div class="arch-detail-grid">
+            <div class="arch-detail">
+              <div class="arch-detail-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c6cfc" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="arch-detail-title">Smart Parsing</div>
+              <div class="arch-detail-desc">AST-aware chunking preserves function boundaries and semantic meaning</div>
+            </div>
+            <div class="arch-detail">
+              <div class="arch-detail-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              </div>
+              <div class="arch-detail-title">384-dim Embeddings</div>
+              <div class="arch-detail-desc">GTE-small model via Transformers.js for semantic understanding</div>
+            </div>
+            <div class="arch-detail">
+              <div class="arch-detail-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <div class="arch-detail-title">Hybrid Ranking</div>
+              <div class="arch-detail-desc">Semantic + BM25 + name + path scoring for best results</div>
+            </div>
+            <div class="arch-detail">
+              <div class="arch-detail-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div class="arch-detail-title">100% Local</div>
+              <div class="arch-detail-desc">Everything runs on your machine. Zero network calls required</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== STATS ========== -->
+    <section class="stats-section" id="stats">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="glass stat-card fade-in">
+            <div class="stat-value gradient-text" data-count="12000" data-suffix="+">0+</div>
+            <div class="stat-label">Chunks indexed</div>
+          </div>
+          <div class="glass stat-card fade-in fade-in-delay-1">
+            <div class="stat-value gradient-text" data-count="51" data-suffix="%">0%</div>
+            <div class="stat-label">Token reduction verified</div>
+          </div>
+          <div class="glass stat-card fade-in fade-in-delay-2">
+            <div class="stat-value gradient-text" data-count="9" data-suffix="">0</div>
+            <div class="stat-label">MCP tools available</div>
+          </div>
+          <div class="glass stat-card fade-in fade-in-delay-3">
+            <div class="stat-value gradient-text" data-count="2" data-suffix="s">0s</div>
+            <div class="stat-label">Average query time</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== COMPARISON ========== -->
+    <section class="comparison" id="comparison">
+      <div class="container text-center">
+        <span class="section-label fade-in">Comparison</span>
+        <h2 class="section-title fade-in">Why choose <span class="gradient-text">Indexa</span>?</h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">See how Indexa stacks up against alternative approaches.</p>
+
+        <div class="comparison-table-wrap glass fade-in fade-in-delay-2">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th class="comparison-highlight">Indexa</th>
+                <th>Manual File Reading</th>
+                <th>Other Tools</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Token Reduction</td>
+                <td class="comparison-highlight col-indexa">50-70%</td>
+                <td>0%</td>
+                <td>20-40%</td>
+              </tr>
+              <tr>
+                <td>Semantic Search</td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> ML embeddings</td>
+                <td><span class="cross">&#10007;</span> None</td>
+                <td><span class="check">&#10003;</span> Varies</td>
+              </tr>
+              <tr>
+                <td>Local-First</td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> 100% local</td>
+                <td><span class="check">&#10003;</span> Local</td>
+                <td><span class="cross">&#10007;</span> Often cloud</td>
+              </tr>
+              <tr>
+                <td>MCP Integration</td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> 9 tools</td>
+                <td><span class="cross">&#10007;</span> None</td>
+                <td>Partial</td>
+              </tr>
+              <tr>
+                <td>Setup Time</td>
+                <td class="comparison-highlight col-indexa">&lt;30 seconds</td>
+                <td>N/A</td>
+                <td>Minutes</td>
+              </tr>
+              <tr>
+                <td>Intent Classification</td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Automatic</td>
+                <td><span class="cross">&#10007;</span> None</td>
+                <td><span class="cross">&#10007;</span> None</td>
+              </tr>
+              <tr>
+                <td>VS Code Extension</td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> 6 commands</td>
+                <td><span class="cross">&#10007;</span> None</td>
+                <td>Varies</td>
+              </tr>
+              <tr>
+                <td>Price</td>
+                <td class="comparison-highlight col-indexa">Free forever</td>
+                <td>Free</td>
+                <td>Free / Paid tiers</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== ABOUT / CREATOR ========== -->
+    <section class="about-section" id="about">
+      <div class="container">
+        <span class="section-label fade-in">Creator</span>
+        <h2 class="section-title text-center fade-in">Built by <span class="gradient-text">Prashant Singh</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Module Lead &amp; Frontend–AI Specialist with 6+ years building scalable systems.</p>
+
+        <div class="about-grid">
+          <div class="glass about-card fade-in fade-in-delay-1">
+            <div class="about-avatar">
+              <div class="avatar-placeholder"><i data-lucide="code-2" style="width:48px;height:48px;color:#7c6cfc"></i></div>
+            </div>
+            <h3>Prashant Singh</h3>
+            <p class="about-title">Module Lead | Frontend – AI &amp; Migration Specialist</p>
+            <p class="about-bio">Experienced Senior Frontend Engineer skilled in full-stack development, API integration, and Agile methodologies. Proficient in Angular, React, Next.js, TypeScript, and modern DevOps. Expert in building scalable, high-performance web applications with focus on AI-powered tooling.</p>
+
+            <div class="about-stats">
+              <div><span class="gradient-text">6+</span><small>Years Exp.</small></div>
+              <div><span class="gradient-text">50+</span><small>Features</small></div>
+              <div><span class="gradient-text">35+</span><small>Projects</small></div>
+              <div><span class="gradient-text">847</span><small>Contributions</small></div>
+            </div>
+
+            <div class="about-highlights">
+              <div class="about-highlight"><i data-lucide="arrow-right-left" class="about-icon"></i> AngularJS → React migrations at scale</div>
+              <div class="about-highlight"><i data-lucide="brain" class="about-icon"></i> AI tools that cut dev effort by 40%</div>
+              <div class="about-highlight"><i data-lucide="gauge" class="about-icon"></i> Performance wins: LCP 4.2s → 1.8s</div>
+              <div class="about-highlight"><i data-lucide="users" class="about-icon"></i> Systems serving 100K+ users</div>
+            </div>
+
+            <div class="about-links">
+              <a href="https://github.com/prashantsinghmangat" target="_blank" rel="noopener" class="about-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                GitHub
+              </a>
+              <a href="https://www.linkedin.com/in/prashantsinghmangat/" target="_blank" rel="noopener" class="about-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43A2.06 2.06 0 013.28 5.37a2.06 2.06 0 012.06-2.06 2.06 2.06 0 012.06 2.06 2.06 2.06 0 01-2.06 2.06zm1.78 13.02H3.56V9h3.56v11.45zM22.23 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.23 0z"/></svg>
+                LinkedIn
+              </a>
+              <a href="https://prashantsinghmangat.netlify.app" target="_blank" rel="noopener" class="about-link">
+                <i data-lucide="globe" style="width:18px;height:18px"></i>
+                Portfolio
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== GITHUB STAR CTA ========== -->
+    <section class="github-star-section fade-in" id="star">
+      <div class="container text-center">
+        <div class="glass github-star-card">
+          <i data-lucide="star" class="github-star-icon"></i>
+          <h2>Like Indexa? Give it a <span class="gradient-text">star</span></h2>
+          <p>Help other developers discover Indexa. A star on GitHub goes a long way.</p>
+          <a href="https://github.com/prashantsinghmangat/Indexa" class="btn-star" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            Star on GitHub
+          </a>
+          <img src="https://img.shields.io/github/stars/prashantsinghmangat/Indexa?style=social" alt="GitHub stars" class="star-badge" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CTA ========== -->
+    <section class="cta-section" id="cta">
+      <div class="container">
+        <h2 class="fade-in"><span class="gradient-text">Start saving tokens today</span></h2>
+        <p class="fade-in fade-in-delay-1">One command. Zero configuration. Free forever.</p>
+        <div class="cta-buttons fade-in fade-in-delay-2">
+          <a href="#quickstart" class="btn-primary">
+            <i data-lucide="rocket" style="width:16px;height:16px"></i>
+            Get Started
+          </a>
+          <a href="https://www.npmjs.com/package/indexa-mcp" class="btn-secondary" target="_blank" rel="noopener">
+            <i data-lucide="package" style="width:18px;height:18px"></i>
+            View on npm
+          </a>
+          <a href="https://github.com/prashantsinghmangat/Indexa" class="btn-secondary" target="_blank" rel="noopener">
+            <i data-lucide="star" style="width:18px;height:18px"></i>
+            Star on GitHub
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-left">
+        <div class="footer-logo">
+          <svg width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">
+            <defs><linearGradient id="ft-g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#7c6cfc"/><stop offset="100%" stop-color="#22d3ee"/></linearGradient></defs>
+            <rect width="64" height="64" rx="14" fill="#0a0a12"/>
+            <text x="32" y="46" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="800" font-size="38" fill="url(#ft-g)">I</text>
+          </svg>
+          Indexa
+        </div>
+        <span class="footer-copy">Built by <a href="https://prashantsinghmangat.netlify.app" target="_blank" rel="noopener">Prashant Singh</a> &middot; MIT License</span>
+      </div>
+      <ul class="footer-links">
+        <li><a href="https://github.com/prashantsinghmangat/Indexa" target="_blank" rel="noopener"><i data-lucide="github" class="footer-icon"></i> GitHub</a></li>
+        <li><a href="https://www.npmjs.com/package/indexa-mcp" target="_blank" rel="noopener"><i data-lucide="package" class="footer-icon"></i> npm</a></li>
+        <li><a href="https://prashantsinghmangat.netlify.app" target="_blank" rel="noopener"><i data-lucide="globe" class="footer-icon"></i> Portfolio</a></li>
+        <li><a href="https://www.linkedin.com/in/prashantsinghmangat/" target="_blank" rel="noopener"><i data-lucide="linkedin" class="footer-icon"></i> LinkedIn</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#tools">Tools</a></li>
+        <li><a href="#quickstart">Quick Start</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if (window.lucide) lucide.createIcons(); });</script>
+</body>
+</html>

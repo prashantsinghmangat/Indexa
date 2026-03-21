@@ -8,9 +8,8 @@ How to keep the index fresh after code changes.
 
 Best for: first-time setup, branch switches, large changes.
 
-```powershell
-cd D:\Project\Indexa
-node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass" --data-dir ./data
+```bash
+npx indexa-mcp index "D:\path\to\your\project"
 ```
 
 **How it works:**
@@ -34,9 +33,8 @@ node dist/cli/index.js index "D:\SafeGuard\SPINext-App-SPIGlass" --data-dir ./da
 
 Best for: after a few commits, quick updates.
 
-```powershell
-cd D:\Project\Indexa
-node dist/cli/index.js update --data-dir ./data
+```bash
+npx indexa-mcp update
 ```
 
 **How it works:**
@@ -58,15 +56,10 @@ Best for: during a conversation, without leaving Claude Code.
 
 Just tell Claude:
 ```
-Use indexa_index to re-index D:\SafeGuard\SPINext-App-SPIGlass
+Use indexa_index to re-index D:\path\to\your\project
 ```
 
 Claude will call the `indexa_index` MCP tool. Same behavior as Method 1 — skips unchanged files.
-
-**When to use:**
-- You're already in a Claude Code session
-- You just created/modified files and want them searchable immediately
-- Quick ad-hoc re-index without switching terminals
 
 ---
 
@@ -74,11 +67,11 @@ Claude will call the `indexa_index` MCP tool. Same behavior as Method 1 — skip
 
 Best for: automation, CI/CD integration.
 
-```powershell
+```bash
 curl -X POST http://localhost:3000/api/update
 ```
 
-Requires the Indexa server to be running (`node dist/cli/index.js serve`).
+Requires the Indexa server to be running (`npx indexa-mcp serve`).
 
 ---
 
@@ -86,7 +79,7 @@ Requires the Indexa server to be running (`node dist/cli/index.js serve`).
 
 Best for: re-indexing from within the editor.
 
-Use the **Reindex** command in the VS Code extension (`indexa-vscode/`). This triggers a full re-index of the current workspace.
+Use the **Reindex** command in the VS Code extension. This triggers a full re-index of the current workspace.
 
 ---
 
@@ -98,13 +91,11 @@ Controlled by `config/indexa.config.json`:
 {
   "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
   "excludePatterns": [
-    "node_modules", "dist", ".git",
+    "node_modules", "dist", ".git", ".next", "_next", "out",
+    ".nuxt", ".output", ".vercel", "build", "coverage",
     "*.test.*", "*.spec.*", "*.stories.*",
-    "public/react-shell/assets",
-    "public/Scripts", "public/Scripts/",
-    "angular-mocks", "e2e/",
-    "*.min.js", "*.bundle.js",
-    "vendor.js", "polyfills.js"
+    "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js",
+    "angular-mocks", "e2e", "chunks"
   ]
 }
 ```
@@ -117,26 +108,16 @@ Controlled by `config/indexa.config.json`:
 | Pattern | Why |
 |---------|-----|
 | `node_modules` | Third-party code |
-| `dist` | Compiled output |
-| `public/react-shell/assets` | Vite-minified bundles (single-letter function names) |
-| `public/Scripts`, `public/Scripts/` | Vendor libraries (Angular, jQuery, etc.) |
-| `angular-mocks` | Angular mock library — test infrastructure |
-| `e2e/` | End-to-end test directories |
+| `dist`, `build`, `out` | Compiled output |
+| `.next`, `_next` | Next.js build output |
+| `.nuxt`, `.output`, `.vercel` | Framework build output |
+| `coverage` | Test coverage reports |
 | `*.test.*`, `*.spec.*` | Test files |
 | `*.stories.*` | Storybook files |
 | `*.min.js`, `*.bundle.js` | Minified/bundled files |
-
-### To add more file types
-Edit `includePatterns`:
-```json
-"includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx", "*.html", "*.scss"]
-```
-
-### To exclude more directories
-Add to `excludePatterns`:
-```json
-"excludePatterns": [..., "coverage", ".next", "generated"]
-```
+| `angular-mocks` | Angular mock library |
+| `e2e` | End-to-end test directories |
+| `chunks` | Build chunk directories |
 
 After changing patterns, run a full re-index.
 
@@ -165,61 +146,32 @@ Both files are written atomically (write to `.tmp` then rename) to prevent corru
 
 ---
 
-## Multi-Project Setup
+## Multi-Project Setup (Automatic in v3.2+)
 
-To index multiple projects, use separate data directories:
+Each project gets its own `.indexa/` directory automatically — no `--data-dir` needed:
 
-```powershell
-# Index project A
-node dist/cli/index.js index "D:\ProjectA" --data-dir ./data-projectA
+```bash
+# Index project A (creates ProjectA/.indexa/)
+cd D:\ProjectA
+npx indexa-mcp setup
 
-# Index project B
-node dist/cli/index.js index "D:\ProjectB" --data-dir ./data-projectB
+# Index project B (creates ProjectB/.indexa/)
+cd D:\ProjectB
+npx indexa-mcp setup
 
-# Search project A
-node dist/cli/index.js search "query" --data-dir ./data-projectA
+# Search — auto-detects .indexa/ in CWD
+cd D:\ProjectA
+npx indexa-mcp search "query"
 ```
 
-For MCP, configure per-project data dirs:
-```json
-{
-  "mcpServers": {
-    "indexa-projectA": {
-      "command": "node",
-      "args": ["D:/Project/Indexa/dist/src/mcp/stdio.js", "--data-dir", "D:/Project/Indexa/data-projectA"]
-    }
-  }
-}
-```
+Each project's index is completely isolated. The CLI automatically finds `.indexa/` in the current working directory.
 
 ---
 
 ## Troubleshooting
 
 ### Index shows 0 new chunks
-Files are unchanged — hashes match. This is normal. If you need to force re-index:
-```powershell
-del data\embeddings.json
-del data\metadata.json
-node dist/cli/index.js index "D:\path\to\project" --data-dir ./data
-```
+Files are unchanged — hashes match. This is normal. If you need to force re-index, delete the data files and re-run.
 
 ### Index is too large
-Check for junk entries:
-```powershell
-node -e "const {VectorDB}=require('./dist/src/storage/vector-db');const db=new VectorDB('./data');console.log('Chunks:',db.size);const all=db.getAll();const types={};all.forEach(c=>{types[c.type]=(types[c.type]||0)+1});console.log(JSON.stringify(types,null,2))"
-```
-
-If you see minified code, update exclude patterns and purge:
-```powershell
-node -e "
-const {VectorDB}=require('./dist/src/storage/vector-db');
-const db=new VectorDB('./data');
-let removed=0;
-db.getAll().forEach(c=>{
-  if(c.filePath.includes('some/junk/path')){db.remove(c.id);removed++;}
-});
-db.save();
-console.log('Removed',removed);
-"
-```
+Run `npx indexa-mcp clean` to purge junk entries, or update exclude patterns in config and re-index.

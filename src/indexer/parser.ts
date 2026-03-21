@@ -220,19 +220,38 @@ export class Parser {
     const existingNames = new Set(existing.map(e => e.name));
 
     for (const exp of sourceFile.getExportedDeclarations()) {
-      const [name, declarations] = exp;
-      if (existingNames.has(name)) continue;
+      const [exportName, declarations] = exp;
 
       for (const decl of declarations) {
+        // For "export default function Foo", ts-morph gives exportName="default"
+        // but the actual function name is "Foo" — extract it from the declaration.
+        // If truly anonymous, derive from filename (e.g. "HeroSection.tsx" → "HeroSection").
+        let resolvedName = exportName;
+        if (exportName === 'default') {
+          if (Node.isFunctionDeclaration(decl) && decl.getName()) {
+            resolvedName = decl.getName()!;
+          } else if (Node.isClassDeclaration(decl) && decl.getName()) {
+            resolvedName = decl.getName()!;
+          } else if (Node.isVariableDeclaration(decl)) {
+            resolvedName = decl.getName();
+          } else {
+            // Truly anonymous default export — use filename as name
+            const baseName = path.basename(filePath, path.extname(filePath));
+            resolvedName = baseName;
+          }
+        }
+
+        if (existingNames.has(resolvedName)) continue;
+
         const code = decl.getFullText().trim();
         const startLine = decl.getStartLineNumber();
         const endLine = decl.getEndLineNumber();
         const { byteOffset, byteLength } = getByteRange(content, startLine, endLine);
 
         elements.push({
-          id: makeSymbolId(filePath, name, 'export'),
+          id: makeSymbolId(filePath, resolvedName, 'export'),
           type: 'export',
-          name,
+          name: resolvedName,
           filePath,
           code,
           startLine,

@@ -1,24 +1,33 @@
-# Indexa v3.1
+# Indexa
 
-Code intelligence via the Model Context Protocol (MCP). Not just search — Indexa explains code, traces execution flows, and assembles context bundles for LLMs.
+[![npm](https://img.shields.io/npm/v/indexa-mcp)](https://www.npmjs.com/package/indexa-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![GitHub](https://img.shields.io/github/stars/prashantsinghmangat/Indexa)](https://github.com/prashantsinghmangat/Indexa)
+
+AI code intelligence via the Model Context Protocol (MCP). Not just search — Indexa explains code, traces execution flows, and assembles context bundles for LLMs.
 
 Built for large-scale projects and migrations (e.g., AngularJS to React/Angular 17). Returns minimal, relevant code — never full files. **Proven 51% token reduction** vs manual file reading.
 
 **Free forever** — no API keys needed, runs locally, offline-capable. Uses local ML embeddings via [Transformers.js](https://huggingface.co/docs/transformers.js) (gte-small model, 384 dimensions).
 
+[Website](https://prashantsinghmangat.github.io/Indexa/) · [npm](https://www.npmjs.com/package/indexa-mcp) · [GitHub](https://github.com/prashantsinghmangat/Indexa)
+
 ## Quick Start (One Command)
 
-```powershell
-cd D:\Project\Indexa
-npm install
-npm run build
-indexa setup "D:\path\to\your\project"
+```bash
+npx indexa-mcp setup
 ```
 
-That's it. `indexa setup` automatically:
+Or install globally:
+```bash
+npm install -g indexa-mcp
+indexa-mcp setup
+```
+
+That's it. `indexa-mcp setup` automatically:
 - Detects your project (language, framework)
 - Indexes the codebase with ML embeddings
-- Configures MCP for Claude Code
+- Stores index data in `.indexa/` inside your project (per-project isolation)
+- Adds `.indexa/` to `.gitignore`
+- Configures MCP for Claude Code (both global `~/.mcp.json` and project `.mcp.json`)
 - Runs a test query to verify everything works
 
 ```
@@ -33,10 +42,18 @@ Then restart Claude Code and ask: _"explain the authentication flow"_
 
 See [Quick Start Guide](docs/quick-start.md) for full details.
 
-## What's New in v3.1
+## What's New in v3.2
 
-- **`indexa setup`** — One command: detect project → index → configure MCP → verify. Under 60 seconds
-- **`indexa doctor`** — Health check: index, embeddings, MCP config, server startup
+- **Per-project data storage** — Index data stored in `.indexa/` inside each project. No cross-project pollution. Works on any machine
+- **Auto `.gitignore`** — Setup adds `.indexa/` to `.gitignore` automatically
+- **Proper `export default` naming** — `export default function Foo` is indexed as `Foo`, not `default`
+- **Search output caps** — Max 10 results, 2KB/chunk, 12K total chars to prevent context overflow
+- **Build output exclusion** — `.next/`, `out/`, `_next/`, `.vercel/` excluded automatically
+
+### v3.1
+
+- **`indexa-mcp setup`** — One command: detect project → index → configure MCP → verify. Under 60 seconds
+- **`indexa-mcp doctor`** — Health check: index, embeddings, MCP config, server startup
 - **Query intent classification** — Auto-detects flow/explain/references/debug/search intent and adjusts weights
 - **CLI works from any directory** — No need to `cd` into Indexa; commands resolve data paths automatically
 - **Entry-point boosting** — Controllers, services, exports rank above internal helpers
@@ -70,28 +87,34 @@ A native VS Code extension is available at `indexa-vscode/`. Install it for in-e
 | **Reindex** | — | Re-index the current workspace |
 | **Health Check** | — | Verify Indexa server status |
 
-## Use with Claude Code (MCP)
+## Per-Project Data Storage
 
-Add to `~/.mcp.json`:
+Each project gets its own isolated index:
 
-```json
-{
-  "mcpServers": {
-    "indexa": {
-      "command": "node",
-      "args": [
-        "D:/Project/Indexa/dist/src/mcp/stdio.js",
-        "--data-dir",
-        "D:/Project/Indexa/data"
-      ]
-    }
-  }
-}
+```
+my-project/
+├── .indexa/              ← index data (auto-gitignored)
+│   ├── embeddings.json   ← chunks + ML embeddings
+│   └── metadata.json     ← file hash tracking
+├── .mcp.json             ← MCP config (auto-created)
+├── .gitignore            ← .indexa/ auto-added
+└── src/
 ```
 
-Also add a project-level `.mcp.json` in the target project root (same content) for project-scoped access.
+- No cross-project pollution — each project's index is completely separate
+- Works on any machine — relative paths, no hardcoded directories
+- `.indexa/` is gitignored — doesn't pollute your repo
+- MCP config auto-created — Claude Code discovers tools on restart
 
-Restart Claude Code. **9 tools** become available:
+## Use with Claude Code (MCP)
+
+`indexa-mcp setup` automatically configures both:
+- **`~/.mcp.json`** — global MCP config
+- **`<project>/.mcp.json`** — project-level MCP config pointing to `.indexa/`
+
+No manual configuration needed. Just restart Claude Code after setup.
+
+**9 tools** become available:
 
 | # | Tool | Description |
 |---|------|-------------|
@@ -111,28 +134,28 @@ See [MCP Integration Guide](docs/mcp-integration.md) for CLAUDE.md setup and usa
 
 ### First-time index
 
-```powershell
-node dist/cli/index.js index "D:\path\to\your\project"
+```bash
+npx indexa-mcp setup    # does everything automatically
 ```
 
 ### After code changes (incremental)
 
-```powershell
+```bash
 # Option 1: CLI — hash-based, skips unchanged files
-node dist/cli/index.js index "D:\path\to\your\project" --data-dir ./data
+npx indexa-mcp index "D:\path\to\your\project"
 
 # Option 2: Git-based — only re-indexes files changed since last commit
-node dist/cli/index.js update --data-dir ./data
+npx indexa-mcp update
 
 # Option 3: From Claude Code — ask Claude directly
-"Use indexa_index to re-index D:\SafeGuard\SPINext-App-SPIGlass"
+"Use indexa_index to re-index D:\path\to\your\project"
 ```
 
 ### After switching branches
 
 Run a full re-index (it still skips unchanged files):
-```powershell
-node dist/cli/index.js index "D:\path\to\your\project" --data-dir ./data
+```bash
+npx indexa-mcp index "D:\path\to\your\project"
 ```
 
 ### What gets indexed
@@ -142,12 +165,11 @@ Controlled by `config/indexa.config.json`:
 {
   "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
   "excludePatterns": [
-    "node_modules", "dist", ".git",
+    "node_modules", "dist", ".git", ".next", "_next", "out",
+    ".nuxt", ".output", ".vercel", "build", "coverage",
     "*.test.*", "*.spec.*", "*.stories.*",
-    "public/react-shell/assets", "public/Scripts",
-    "public/Scripts/", "angular-mocks",
     "*.min.js", "*.bundle.js", "vendor.js", "polyfills.js",
-    "e2e/"
+    "angular-mocks", "e2e", "chunks"
   ]
 }
 ```
@@ -156,22 +178,20 @@ See [Configuration](docs/configuration.md) for all options.
 
 ## CLI Commands
 
-```powershell
-indexa setup "D:\path\to\project"        # One-command setup (auto everything)
-indexa doctor                             # Health check (index, MCP, server)
-indexa search "vendor pricing"            # Hybrid search
-indexa bundle "authentication flow"       # Context bundle (PRIMARY for LLMs)
-indexa flow "getVendorRates"              # Execution flow tracing
-indexa explain "vendor pricing system"    # Code explanation
-indexa index "D:\path\to\project"         # Full index (skips unchanged)
-indexa update                              # Incremental via git diff
-indexa clean                               # Purge junk chunks
-indexa health                              # Index stats report
-indexa reindex "D:\path\to\project"        # Wipe + re-index + clean
-indexa serve                               # REST API on :3000
+```bash
+npx indexa-mcp setup "D:\path\to\project"     # One-command setup (auto everything)
+npx indexa-mcp doctor                          # Health check (index, MCP, server)
+npx indexa-mcp search "vendor pricing"         # Hybrid search
+npx indexa-mcp bundle "authentication flow"    # Context bundle (PRIMARY for LLMs)
+npx indexa-mcp flow "getVendorRates"           # Execution flow tracing
+npx indexa-mcp explain "vendor pricing system" # Code explanation
+npx indexa-mcp index "D:\path\to\project"      # Full index (skips unchanged)
+npx indexa-mcp update                           # Incremental via git diff
+npx indexa-mcp clean                            # Purge junk chunks
+npx indexa-mcp serve                            # REST API on :3000
 ```
 
-> **Note:** If `indexa` isn't in your PATH, use `node D:/Project/Indexa/dist/cli/index.js` instead.
+> **Tip:** Install globally with `npm i -g indexa-mcp` to use `indexa-mcp` directly instead of `npx`.
 
 ## API Endpoints
 

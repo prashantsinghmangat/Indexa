@@ -130,10 +130,34 @@ The model is downloaded and cached locally on first run. No network access is ne
 
 ## Data Storage
 
+### Per-Project Storage (v3.2+)
+
+Index data is stored in `.indexa/` inside each project root:
+
+```
+my-project/
+├── .indexa/              ← per-project index data
+│   ├── embeddings.json   ← chunks + ML embeddings (10-50 MB)
+│   └── metadata.json     ← file hash tracking (< 1 MB)
+├── .mcp.json             ← MCP config pointing to .indexa/
+└── src/
+```
+
+- Each project has its own isolated index — no cross-project pollution
+- `.indexa/` is automatically added to `.gitignore` during setup
+- Works on any developer's machine — no hardcoded paths in the data
+- MCP config in `.mcp.json` points to the local `.indexa/` directory
+
+### Legacy Storage
+
+Older versions stored data in `<indexa-root>/data/`. The CLI auto-detects: if `.indexa/` exists in CWD, it uses that. Otherwise falls back to the install-root `data/` directory.
+
+### Storage Details
+
 | File | Size | Contents |
 |------|------|---------|
-| `data/embeddings.json` | 10-50 MB | Chunk metadata + embedding vectors (384-dim, no inline code) |
-| `data/metadata.json` | < 1 MB | File path → content hash mapping |
+| `.indexa/embeddings.json` | 10-50 MB | Chunk metadata + embedding vectors (384-dim, no inline code) |
+| `.indexa/metadata.json` | < 1 MB | File path → content hash mapping |
 
 Code is NOT stored in the index. It's read on demand from source files via byte offsets — minimal memory footprint.
 

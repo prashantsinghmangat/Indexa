@@ -7,16 +7,21 @@ import { GraphAnalysis } from '../src/retrieval/graph';
 import { FlowEngine, ExplainEngine } from '../src/intelligence';
 import { logger, readCodeAtOffset } from '../src/utils';
 
-/** Resolve the default data directory — uses Indexa install root, not CWD */
+/** Resolve the default data directory.
+ *  Priority: 1) .indexa/ in CWD (per-project), 2) Indexa install root/data (legacy) */
 function defaultDataDir(): string {
-  // __dirname at runtime = dist/cli → go up to find package.json with name "indexa"
+  // Check for project-local .indexa/ directory first
+  const localDir = path.join(process.cwd(), '.indexa');
+  if (fs.existsSync(localDir)) return localDir;
+
+  // Fall back to Indexa install root
   let dir = __dirname;
   for (let i = 0; i < 5; i++) {
     const pkgPath = path.join(dir, 'package.json');
     if (fs.existsSync(pkgPath)) {
       try {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-        if (pkg.name === 'indexa') return path.join(dir, 'data');
+        if (pkg.name === 'indexa-mcp' || pkg.name === 'indexa') return path.join(dir, 'data');
       } catch { /* continue */ }
     }
     dir = path.dirname(dir);

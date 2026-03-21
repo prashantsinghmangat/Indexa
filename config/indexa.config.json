@@ -2,7 +2,7 @@
   "projectRoot": ".",
   "dataDir": "./data",
   "port": 3000,
-  "embeddingDim": 128,
+  "embeddingDim": 384,
   "defaultTopK": 5,
   "defaultTokenBudget": 4000,
   "includePatterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],

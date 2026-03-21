@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200, height=630">
+  <title>Indexa OG Image</title>
+  <style>
+    /*
+      OG Image Template — 1200x630px
+      Open this in a browser and screenshot, or use a tool like
+      `npx @vercel/og` or Puppeteer to render to PNG.
+    */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1200px;
+      height: 630px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050509;
+      font-family: system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Background glow */
+    .glow-1 {
+      position: absolute;
+      top: -200px;
+      left: 100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(124,108,252,0.18) 0%, transparent 70%);
+    }
+    .glow-2 {
+      position: absolute;
+      bottom: -200px;
+      right: 50px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(34,211,238,0.1) 0%, transparent 70%);
+    }
+
+    .content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 0 80px;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #7c6cfc, #22d3ee);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .logo-text {
+      font-size: 48px;
+      font-weight: 800;
+      color: #e8e6f0;
+    }
+
+    h1 {
+      font-size: 64px;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #7c6cfc 0%, #a78bfa 40%, #22d3ee 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 24px;
+    }
+
+    p {
+      font-size: 26px;
+      color: #9896a6;
+      max-width: 800px;
+      margin: 0 auto 32px;
+      line-height: 1.4;
+    }
+
+    .badges {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .badge {
+      padding: 10px 24px;
+      border-radius: 100px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .badge-primary {
+      background: linear-gradient(135deg, #7c6cfc, #22d3ee);
+      color: #fff;
+    }
+
+    .badge-secondary {
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #e8e6f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-1"></div>
+  <div class="glow-2"></div>
+  <div class="content">
+    <div class="logo">
+      <div class="logo-icon">I</div>
+      <span class="logo-text">Indexa</span>
+    </div>
+    <h1>AI Code Intelligence.<br>Local-First. Free Forever.</h1>
+    <p>Open-source MCP server that reduces AI token usage by 50-70% with semantic code retrieval.</p>
+    <div class="badges">
+      <span class="badge badge-primary">50-70% Token Savings</span>
+      <span class="badge badge-secondary">9 MCP Tools</span>
+      <span class="badge badge-secondary">MIT License</span>
+    </div>
+  </div>
+</body>
+</html>

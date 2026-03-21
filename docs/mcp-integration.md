@@ -1,25 +1,20 @@
-# Indexa v3.1 — MCP Integration with Claude Code
+# Indexa — MCP Integration with Claude Code
 
 Indexa provides 9 MCP tools including execution flow tracing, code explanation, and context-stitched bundles. Proven 51% token reduction vs manual file reading.
 
-## Setup
+## Setup (One Command)
 
-### 1. Build Indexa
-
-```powershell
-cd D:\Project\Indexa
-npm install
-npm run build
+```bash
+npx indexa-mcp setup
 ```
 
-### 2. Index Your Codebase
+This automatically:
+1. Installs and indexes your codebase with ML embeddings
+2. Configures `~/.mcp.json` for Claude Code
+3. Creates a project-level `.mcp.json`
+4. Verifies everything works
 
-```powershell
-node dist/cli/index.js init
-node dist/cli/index.js index "D:\path\to\your\project"
-```
-
-Indexing uses local ML embeddings (Transformers.js, gte-small, 384-dim) — no API keys needed.
+### Manual Setup (if needed)
 
 ### 3. Configure Claude Code
 

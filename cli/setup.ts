@@ -104,22 +104,36 @@ function getMcpServerPath(): string {
   return path.join(getIndexaRoot(), 'dist', 'src', 'mcp', 'stdio.js').replace(/\\/g, '/');
 }
 
-/** Get the data directory path */
-function getDataDir(): string {
-  return path.join(getIndexaRoot(), 'data').replace(/\\/g, '/');
+/** Get the data directory path — per-project .indexa/ directory */
+function getProjectDataDir(projectRoot: string): string {
+  return path.join(projectRoot, '.indexa').replace(/\\/g, '/');
+}
+
+/** Add .indexa/ to the project's .gitignore if not already present */
+function addToGitignore(projectRoot: string): void {
+  const gitignorePath = path.join(projectRoot, '.gitignore');
+  try {
+    let content = '';
+    if (fs.existsSync(gitignorePath)) {
+      content = fs.readFileSync(gitignorePath, 'utf-8');
+    }
+    if (!content.includes('.indexa')) {
+      const separator = content.endsWith('\n') || content === '' ? '' : '\n';
+      fs.appendFileSync(gitignorePath, `${separator}\n# Indexa code intelligence data\n.indexa/\n`);
+    }
+  } catch { /* ignore — non-critical */ }
 }
 
 /** Configure MCP in ~/.mcp.json */
-function setupMcp(): boolean {
+function setupMcp(projectDataDir: string): boolean {
   const mcpPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.mcp.json');
   const serverPath = getMcpServerPath();
-  const dataDir = getDataDir();
 
   const mcpConfig = {
     mcpServers: {
       indexa: {
         command: 'node',
-        args: [serverPath, '--data-dir', dataDir],
+        args: [serverPath, '--data-dir', projectDataDir],
       },
     },
   };
@@ -141,23 +155,25 @@ function setupMcp(): boolean {
   }
 }
 
-/** Create project-level .mcp.json for team sharing */
-function setupProjectMcp(projectRoot: string): boolean {
+/** Create project-level .mcp.json pointing to local .indexa/ */
+function setupProjectMcp(projectRoot: string, projectDataDir: string): boolean {
   const mcpPath = path.join(projectRoot, '.mcp.json');
-  if (fs.existsSync(mcpPath)) return false; // don't overwrite
-
   const serverPath = getMcpServerPath();
-  const dataDir = getDataDir();
+
+  const mcpEntry = {
+    command: 'node',
+    args: [serverPath, '--data-dir', projectDataDir],
+  };
 
   try {
-    fs.writeFileSync(mcpPath, JSON.stringify({
-      mcpServers: {
-        indexa: {
-          command: 'node',
-          args: [serverPath, '--data-dir', dataDir],
-        },
-      },
-    }, null, 2));
+    let existing: any = {};
+    if (fs.existsSync(mcpPath)) {
+      existing = JSON.parse(fs.readFileSync(mcpPath, 'utf-8'));
+    }
+    if (!existing.mcpServers) existing.mcpServers = {};
+    existing.mcpServers.indexa = mcpEntry;
+
+    fs.writeFileSync(mcpPath, JSON.stringify(existing, null, 2));
     return true;
   } catch {
     return false;
@@ -169,7 +185,6 @@ function setupProjectMcp(projectRoot: string): boolean {
 export async function setupCommand(targetDir?: string): Promise<void> {
   const startTime = Date.now();
   const indexaRoot = getIndexaRoot();
-  const dataDir = getDataDir();
 
   print('');
   print('  ╔═══════════════════════════════════╗');
@@ -186,6 +201,7 @@ export async function setupCommand(targetDir?: string): Promise<void> {
     : detectProjectRoot(process.cwd());
 
   const project = detectProjectType(projectRoot);
+  const dataDir = getProjectDataDir(projectRoot);
   success(`Project: ${path.basename(projectRoot)}`);
   success(`Type: ${project.lang} / ${project.framework}`);
   if (project.files > 0) success(`Files: ~${project.files} source files`);
@@ -193,8 +209,10 @@ export async function setupCommand(targetDir?: string): Promise<void> {
 
   // ─── Step 2: Ensure data directory ────────────────────────────────────
   print('  Step 2/5: Preparing data storage...');
-  ensureDir(path.join(indexaRoot, 'data'));
+  ensureDir(dataDir);
+  addToGitignore(projectRoot);
   success(`Data: ${dataDir}`);
+  success('Added .indexa/ to .gitignore');
   print('');
 
   // ─── Step 3: Index the codebase ───────────────────────────────────────
@@ -203,10 +221,10 @@ export async function setupCommand(targetDir?: string): Promise<void> {
   print('');
 
   try {
-    await indexCommand(projectRoot, { dataDir: path.join(indexaRoot, 'data') });
+    await indexCommand(projectRoot, { dataDir });
     print('');
     print('  Cleaning junk entries...');
-    await cleanCommand({ dataDir: path.join(indexaRoot, 'data') });
+    await cleanCommand({ dataDir });
   } catch (err) {
     warn(`Indexing encountered issues: ${err instanceof Error ? err.message : err}`);
     warn('You can retry with: indexa index <directory>');
@@ -216,14 +234,14 @@ export async function setupCommand(targetDir?: string): Promise<void> {
   // ─── Step 4: Setup MCP ────────────────────────────────────────────────
   print('  Step 4/5: Configuring MCP...');
 
-  const mcpOk = setupMcp();
+  const mcpOk = setupMcp(dataDir);
   if (mcpOk) {
     success('Global MCP configured (~/.mcp.json)');
   } else {
     warn('Could not configure global MCP — set up manually');
   }
 
-  const projectMcpOk = setupProjectMcp(projectRoot);
+  const projectMcpOk = setupProjectMcp(projectRoot, dataDir);
   if (projectMcpOk) {
     success(`Project MCP created (${path.basename(projectRoot)}/.mcp.json)`);
   }
@@ -241,7 +259,7 @@ export async function setupCommand(targetDir?: string): Promise<void> {
   let chunks = 0;
   let testPassed = false;
   try {
-    const embPath = path.join(indexaRoot, 'data', 'embeddings.json');
+    const embPath = path.join(dataDir, 'embeddings.json');
     if (fs.existsSync(embPath)) {
       const raw = fs.readFileSync(embPath, 'utf-8');
       const data = JSON.parse(raw);
@@ -258,7 +276,7 @@ export async function setupCommand(targetDir?: string): Promise<void> {
       const { VectorDB } = require(path.join(indexaRoot, 'dist', 'src', 'storage', 'vector-db'));
       const { Embedder } = require(path.join(indexaRoot, 'dist', 'src', 'indexer', 'embedder'));
 
-      const db = new VectorDB(path.join(indexaRoot, 'data'));
+      const db = new VectorDB(dataDir);
       const embedder = new Embedder();
       const search = new HybridSearch(db, embedder);
 
@@ -314,7 +332,9 @@ export async function setupCommand(targetDir?: string): Promise<void> {
 
 export async function doctorCommand(opts: { dataDir?: string } = {}): Promise<void> {
   const indexaRoot = getIndexaRoot();
-  const dataDir = opts.dataDir || path.join(indexaRoot, 'data');
+  // Check for project-local .indexa/ first, then fall back to global
+  const localDataDir = path.join(process.cwd(), '.indexa');
+  const dataDir = opts.dataDir || (fs.existsSync(localDataDir) ? localDataDir : path.join(indexaRoot, 'data'));
 
   print('');
   print('  Indexa Doctor');

@@ -1,4 +1,4 @@
-# Indexa v3.1 — Quick Start
+# Indexa v3.2 — Quick Start
 
 Get up and running in under 60 seconds. Free forever — no API keys, runs locally, offline-capable.
 
@@ -8,30 +8,36 @@ Get up and running in under 60 seconds. Free forever — no API keys, runs local
 - npm
 - Git (for incremental updates)
 
-## 1. Install & Build
+## 1. Setup (One Command)
 
-```powershell
-cd D:\Project\Indexa
-npm install
-npm run build
+```bash
+npx indexa-mcp setup
 ```
 
-> **PowerShell note:** Run commands separately. PowerShell does not support `&&`.
-
-## 2. Setup (One Command)
-
-```powershell
-indexa setup "D:\path\to\your\project"
+Or install globally first:
+```bash
+npm install -g indexa-mcp
+indexa-mcp setup
 ```
-
-> If `indexa` isn't in your PATH: `node dist/cli/index.js setup "D:\path\to\your\project"`
 
 This single command:
 1. **Detects** your project (language, framework, file count)
-2. **Indexes** the codebase with ML embeddings (Transformers.js, 384-dim)
-3. **Cleans** junk entries (minified builds, vendor scripts, storybook, tests)
-4. **Configures MCP** — adds Indexa to `~/.mcp.json` and creates project-level `.mcp.json`
-5. **Verifies** by running a live test query
+2. **Creates** `.indexa/` directory inside your project for per-project data storage
+3. **Adds** `.indexa/` to your `.gitignore` automatically
+4. **Indexes** the codebase with ML embeddings (Transformers.js, 384-dim)
+5. **Cleans** junk entries (minified builds, vendor scripts, storybook, tests)
+6. **Configures MCP** — adds Indexa to `~/.mcp.json` and creates project-level `.mcp.json` pointing to `.indexa/`
+7. **Verifies** by running a live test query
+
+After setup, your project looks like:
+```
+my-project/
+├── .indexa/              ← index data (gitignored)
+│   ├── embeddings.json
+│   └── metadata.json
+├── .mcp.json             ← MCP config (auto-created)
+└── src/
+```
 
 Output:
 ```
@@ -44,8 +50,8 @@ Output:
 
 ## 3. Verify
 
-```powershell
-indexa doctor
+```bash
+npx indexa-mcp doctor
 ```
 
 ```
@@ -72,11 +78,11 @@ Claude will auto-call `indexa_context_bundle` and return relevant code with 51% 
 
 ## 5. Use the CLI (Works from Any Directory)
 
-```powershell
-indexa search "vendor pricing"               # Hybrid search
-indexa bundle "authentication flow"          # Context bundle (best for LLMs)
-indexa flow "getVendorRates"                 # Execution flow trace
-indexa explain "vendor pricing system"       # Code explanation
+```bash
+npx indexa-mcp search "vendor pricing"               # Hybrid search
+npx indexa-mcp bundle "authentication flow"          # Context bundle (best for LLMs)
+npx indexa-mcp flow "getVendorRates"                 # Execution flow trace
+npx indexa-mcp explain "vendor pricing system"       # Code explanation
 ```
 
 **Query intent classification** auto-detects what you need:
@@ -89,7 +95,7 @@ indexa explain "vendor pricing system"       # Code explanation
 
 Install the extension from `indexa-vscode/indexa-0.1.0.vsix`:
 1. `Ctrl+Shift+P` → "Install from VSIX"
-2. Start the server: `indexa serve`
+2. Start the server: `npx indexa-mcp serve`
 3. Use `Ctrl+Shift+I` to ask Indexa
 
 | Command | Shortcut | Description |
@@ -103,10 +109,9 @@ Install the extension from `indexa-vscode/indexa-0.1.0.vsix`:
 
 ## 7. Re-index After Code Changes
 
-```powershell
-indexa index "D:\path\to\project"       # Full (skips unchanged files)
-indexa update                            # Git-based incremental
-indexa reindex "D:\path\to\project"      # Wipe + fresh re-index + clean
+```bash
+npx indexa-mcp index "D:\path\to\project"       # Full (skips unchanged files)
+npx indexa-mcp update                            # Git-based incremental
 ```
 
 Or from Claude Code: _"Use indexa_index to re-index my project"_
