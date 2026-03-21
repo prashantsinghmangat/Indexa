@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Indexa — AI Code Intelligence MCP Server | 50-70% Token Reduction</title>
-  <meta name="description" content="Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%. Local-first, free forever.">
+  <title>Indexa — Context Engine for AI Coding Tools | Stop Sending Full Files</title>
+  <meta name="description" content="Your AI reads 10,000 lines to find 1 function. Indexa gives it exactly what it needs. Index once, return only relevant symbols, dependencies, and execution flows. 50% fewer tokens. Free forever.">
   <meta name="author" content="Prashant Singh">
   <meta name="keywords" content="MCP server, code intelligence, AI coding, token reduction, semantic search, Claude, code indexing, developer tools, open source">
   <link rel="canonical" href="https://github.com/prashantsinghmangat/Indexa">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Indexa — AI Code Intelligence MCP Server">
-  <meta property="og:description" content="Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%. Local-first, free forever.">
+  <meta property="og:title" content="Indexa — Context Engine for AI Coding Tools">
+  <meta property="og:description" content="Your AI reads 10,000 lines to find 1 function. Indexa gives it exactly what it needs. 50% fewer tokens. Free forever.">
   <meta property="og:url" content="https://github.com/prashantsinghmangat/Indexa">
   <meta property="og:site_name" content="Indexa">
   <meta property="og:image" content="https://raw.githubusercontent.com/prashantsinghmangat/Indexa/main/website/og-image.png">
@@ -21,8 +21,8 @@
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Indexa — AI Code Intelligence MCP Server">
-  <meta name="twitter:description" content="Open-source MCP server. 50-70% token reduction for AI agents. Local-first, free forever.">
+  <meta name="twitter:title" content="Indexa — Context Engine for AI Coding Tools">
+  <meta name="twitter:description" content="Your AI reads 10,000 lines to find 1 function. Indexa gives it exactly what it needs. 50% fewer tokens. Free forever.">
   <meta name="twitter:image" content="https://raw.githubusercontent.com/prashantsinghmangat/Indexa/main/website/og-image.png">
 
   <!-- Schema.org Structured Data -->
@@ -31,7 +31,7 @@
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Indexa",
-    "description": "Open-source MCP server that indexes your codebase and provides semantic code retrieval for AI agents. Reduces token usage by 50-70%.",
+    "description": "Context engine for AI coding tools. Index your codebase once, return only relevant symbols, dependencies, and execution flows. 50% fewer tokens. Free forever.",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Windows, macOS, Linux",
     "offers": {
@@ -46,7 +46,7 @@
     "license": "https://opensource.org/licenses/MIT",
     "url": "https://github.com/prashantsinghmangat/Indexa",
     "downloadUrl": "https://www.npmjs.com/package/indexa-mcp",
-    "softwareVersion": "3.1",
+    "softwareVersion": "3.2",
     "programmingLanguage": "TypeScript"
   }
   </script>
@@ -104,10 +104,11 @@
         <div class="hero-content">
           <div class="hero-badge fade-in">
             <span class="dot" aria-hidden="true"></span>
-            Open Source &middot; MIT License &middot; v3.1
+            Context Engine for AI Coding Tools &middot; Open Source
           </div>
-          <h1 class="fade-in"><span class="gradient-text">AI Code Intelligence.</span><br>Local-First. Free Forever.</h1>
-          <p class="hero-tagline fade-in fade-in-delay-1">The open-source MCP server that indexes your codebase and gives AI agents only the code they need. Cut token usage by 50&ndash;70%.</p>
+          <h1 class="fade-in"><span class="gradient-text">Your AI reads 10,000 lines</span><br>to find 1 function.</h1>
+          <p class="hero-tagline fade-in fade-in-delay-1" style="font-size:1.3rem;font-weight:600;color:#e4e4e7;margin-bottom:8px;">Indexa gives it exactly what it needs.</p>
+          <p class="hero-tagline fade-in fade-in-delay-1">Index your codebase once. Return only relevant symbols, dependencies, and execution flows. <strong>50% fewer tokens. Better answers.</strong></p>
           <div class="hero-buttons fade-in fade-in-delay-2">
             <a href="#quickstart" class="btn-primary">
               Get Started
@@ -165,6 +166,58 @@
             </div>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ========== SEE IT IN 5 SECONDS ========== -->
+    <section class="see-it" id="see-it" style="padding:80px 0 40px;">
+      <div class="container text-center">
+        <span class="section-label fade-in">See It In 5 Seconds</span>
+        <h2 class="section-title fade-in">One query. <span class="gradient-text">Full system understanding.</span></h2>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:40px;">
+          <div class="glass fade-in" style="padding:28px;text-align:left;border-left:3px solid #7c6cfc;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#a78bfa;margin-bottom:12px;">You ask:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e4e4e7;margin-bottom:16px;">"trace the login flow"</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#22d3ee;margin-bottom:8px;">Indexa returns:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:#a1a1aa;line-height:1.7;">
+              VendorAuthGuard<br>
+              &nbsp;&nbsp;&rarr; VendorFlowGuard<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&rarr; verifyPkceSession<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&rarr; getAppSessionCookie<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&rarr; useVcAuthStore
+            </div>
+            <div style="margin-top:16px;font-size:0.8rem;color:#71717a;">9 steps &middot; 5 files &middot; 2,500 tokens &middot; <span style="color:#34d399;">Done.</span></div>
+          </div>
+
+          <div class="glass fade-in fade-in-delay-1" style="padding:28px;text-align:left;border-left:3px solid #22d3ee;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#a78bfa;margin-bottom:12px;">You ask:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e4e4e7;margin-bottom:16px;">"what breaks if I change UserService?"</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#22d3ee;margin-bottom:8px;">Indexa returns:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:#a1a1aa;line-height:1.7;">
+              12 references across 8 files<br>
+              Blast radius: LoginController, AuthMiddleware,<br>
+              SessionManager, TokenValidator, +4 more
+            </div>
+            <div style="margin-top:16px;font-size:0.8rem;color:#71717a;">Impact mapped &middot; <span style="color:#34d399;">Before you refactor.</span></div>
+          </div>
+
+          <div class="glass fade-in fade-in-delay-2" style="padding:28px;text-align:left;border-left:3px solid #34d399;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#a78bfa;margin-bottom:12px;">You ask:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e4e4e7;margin-bottom:16px;">"explain the theme system"</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#22d3ee;margin-bottom:8px;">Indexa returns:</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:#a1a1aa;line-height:1.7;">
+              ThemeSwitcher &rarr; useUIStore &rarr; ThemeApplier<br>
+              4 themes: default, cyberpunk, minimal, matrix<br>
+              CSS variables swap via data-theme attribute
+            </div>
+            <div style="margin-top:16px;font-size:0.8rem;color:#71717a;">3 symbols &middot; 1,789 tokens &middot; <span style="color:#34d399;">Complete picture.</span></div>
+          </div>
+        </div>
+
+        <p class="fade-in fade-in-delay-3" style="margin-top:32px;font-size:1.05rem;color:#a1a1aa;">
+          Most tools help you <em>find</em> code. Indexa helps AI <strong style="color:#e4e4e7;">understand</strong> it.
+        </p>
       </div>
     </section>
 
@@ -581,67 +634,69 @@
     <section class="comparison" id="comparison">
       <div class="container text-center">
         <span class="section-label fade-in">Comparison</span>
-        <h2 class="section-title fade-in">Why choose <span class="gradient-text">Indexa</span>?</h2>
-        <p class="section-subtitle center fade-in fade-in-delay-1">See how Indexa stacks up against alternative approaches.</p>
+        <h2 class="section-title fade-in">Why not just use <span class="gradient-text">RAG / Copilot / Grep?</span></h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Different tools. Different capabilities. See where Indexa wins.</p>
 
         <div class="comparison-table-wrap glass fade-in fade-in-delay-2">
           <table class="comparison-table">
             <thead>
               <tr>
-                <th>Feature</th>
+                <th>Capability</th>
+                <th>Generic RAG</th>
+                <th>Copilot</th>
+                <th>Grep / Glob</th>
                 <th class="comparison-highlight">Indexa</th>
-                <th>Manual File Reading</th>
-                <th>Other Tools</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Token Reduction</td>
-                <td class="comparison-highlight col-indexa">50-70%</td>
-                <td>0%</td>
-                <td>20-40%</td>
+                <td>Returns</td>
+                <td>Raw text chunks</td>
+                <td>Full file reads</td>
+                <td>Line matches</td>
+                <td class="comparison-highlight"><strong>Symbols + deps + connections</strong></td>
               </tr>
               <tr>
-                <td>Semantic Search</td>
-                <td class="comparison-highlight"><span class="check">&#10003;</span> ML embeddings</td>
-                <td><span class="cross">&#10007;</span> None</td>
-                <td><span class="check">&#10003;</span> Varies</td>
+                <td>Understands structure</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> AST-parsed</td>
               </tr>
               <tr>
-                <td>Local-First</td>
-                <td class="comparison-highlight"><span class="check">&#10003;</span> 100% local</td>
-                <td><span class="check">&#10003;</span> Local</td>
-                <td><span class="cross">&#10007;</span> Often cloud</td>
+                <td>Traces execution</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Call chains across files</td>
               </tr>
               <tr>
-                <td>MCP Integration</td>
-                <td class="comparison-highlight"><span class="check">&#10003;</span> 9 tools</td>
-                <td><span class="cross">&#10007;</span> None</td>
-                <td>Partial</td>
+                <td>Blast radius</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> What breaks if you change X</td>
               </tr>
               <tr>
-                <td>Setup Time</td>
-                <td class="comparison-highlight col-indexa">&lt;30 seconds</td>
-                <td>N/A</td>
-                <td>Minutes</td>
+                <td>Token efficiency</td>
+                <td>Poor</td>
+                <td>Poor</td>
+                <td>Medium</td>
+                <td class="comparison-highlight col-indexa"><strong>50-70% reduction</strong></td>
               </tr>
               <tr>
-                <td>Intent Classification</td>
-                <td class="comparison-highlight"><span class="check">&#10003;</span> Automatic</td>
-                <td><span class="cross">&#10007;</span> None</td>
-                <td><span class="cross">&#10007;</span> None</td>
+                <td>Runs locally</td>
+                <td>Sometimes</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="check">&#10003;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Always</td>
               </tr>
               <tr>
-                <td>VS Code Extension</td>
-                <td class="comparison-highlight"><span class="check">&#10003;</span> 6 commands</td>
-                <td><span class="cross">&#10007;</span> None</td>
-                <td>Varies</td>
-              </tr>
-              <tr>
-                <td>Price</td>
-                <td class="comparison-highlight col-indexa">Free forever</td>
                 <td>Free</td>
-                <td>Free / Paid tiers</td>
+                <td>Sometimes</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="check">&#10003;</span></td>
+                <td class="comparison-highlight col-indexa"><strong>Free forever</strong></td>
               </tr>
             </tbody>
           </table>
