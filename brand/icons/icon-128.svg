@@ -1,0 +1,32 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#E24B4A"/>
+<stop offset="100%" stop-color="#EF9F27"/>
+</linearGradient>
+</defs>
+<circle cx="16" cy="44" r="5" fill="#E24B4A" opacity="0.25"/>
+<circle cx="112" cy="28" r="5" fill="#E24B4A" opacity="0.25"/>
+<circle cx="48" cy="14" r="4.5" fill="#EF9F27" opacity="0.3"/>
+<circle cx="80" cy="10" r="4" fill="#E24B4A" opacity="0.2"/>
+<circle cx="26" cy="90" r="4.5" fill="#EF9F27" opacity="0.2"/>
+<circle cx="102" cy="86" r="4" fill="#E24B4A" opacity="0.2"/>
+<circle cx="64" cy="114" r="4" fill="#EF9F27" opacity="0.22"/>
+<circle cx="36" cy="58" r="6.5" fill="#E24B4A" opacity="0.45"/>
+<circle cx="92" cy="50" r="6.5" fill="#EF9F27" opacity="0.45"/>
+<circle cx="46" cy="92" r="6" fill="#E24B4A" opacity="0.4"/>
+<circle cx="82" cy="96" r="6" fill="#EF9F27" opacity="0.4"/>
+<line x1="16" y1="44" x2="64" y2="64" stroke="#E24B4A" stroke-width="0.8" opacity="0.2"/>
+<line x1="112" y1="28" x2="64" y2="64" stroke="#E24B4A" stroke-width="0.8" opacity="0.2"/>
+<line x1="48" y1="14" x2="64" y2="64" stroke="#EF9F27" stroke-width="0.8" opacity="0.25"/>
+<line x1="80" y1="10" x2="64" y2="64" stroke="#E24B4A" stroke-width="0.8" opacity="0.2"/>
+<line x1="26" y1="90" x2="64" y2="64" stroke="#EF9F27" stroke-width="0.8" opacity="0.2"/>
+<line x1="102" y1="86" x2="64" y2="64" stroke="#E24B4A" stroke-width="0.8" opacity="0.2"/>
+<line x1="64" y1="114" x2="64" y2="64" stroke="#EF9F27" stroke-width="0.8" opacity="0.2"/>
+<line x1="36" y1="58" x2="64" y2="64" stroke="#E24B4A" stroke-width="1.2" opacity="0.4"/>
+<line x1="92" y1="50" x2="64" y2="64" stroke="#EF9F27" stroke-width="1.2" opacity="0.4"/>
+<line x1="46" y1="92" x2="64" y2="64" stroke="#E24B4A" stroke-width="1.2" opacity="0.4"/>
+<line x1="82" y1="96" x2="64" y2="64" stroke="#EF9F27" stroke-width="1.2" opacity="0.4"/>
+<circle cx="64" cy="64" r="12" fill="url(#ig)"/>
+<circle cx="64" cy="64" r="19" fill="none" stroke="url(#ig)" stroke-width="1" opacity="0.35"/>
+</svg>

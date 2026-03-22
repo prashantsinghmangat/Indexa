@@ -1,0 +1,57 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#0d0d0d"/>
+<stop offset="100%" stop-color="#1a1a1a"/>
+</linearGradient>
+<linearGradient id="og" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#E24B4A"/>
+<stop offset="100%" stop-color="#EF9F27"/>
+</linearGradient>
+<linearGradient id="og2" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0%" stop-color="#E24B4A"/>
+<stop offset="50%" stop-color="#EF9F27"/>
+<stop offset="100%" stop-color="#E24B4A"/>
+</linearGradient>
+</defs>
+<rect width="1280" height="640" fill="url(#bg)"/>
+<g transform="translate(640, 200)">
+<circle cx="-120" cy="-50" r="6" fill="#E24B4A" opacity="0.2"/>
+<circle cx="120" cy="-70" r="6" fill="#E24B4A" opacity="0.2"/>
+<circle cx="-40" cy="-100" r="5" fill="#EF9F27" opacity="0.25"/>
+<circle cx="40" cy="-106" r="4.5" fill="#E24B4A" opacity="0.18"/>
+<circle cx="-90" cy="50" r="5" fill="#EF9F27" opacity="0.18"/>
+<circle cx="90" cy="44" r="4.5" fill="#E24B4A" opacity="0.18"/>
+<circle cx="0" cy="90" r="5" fill="#EF9F27" opacity="0.18"/>
+<circle cx="-60" cy="-14" r="8" fill="#E24B4A" opacity="0.4"/>
+<circle cx="60" cy="-24" r="8" fill="#EF9F27" opacity="0.4"/>
+<circle cx="-34" cy="56" r="7" fill="#E24B4A" opacity="0.35"/>
+<circle cx="34" cy="60" r="7" fill="#EF9F27" opacity="0.35"/>
+<line x1="-120" y1="-50" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.8" opacity="0.15"/>
+<line x1="120" y1="-70" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.8" opacity="0.15"/>
+<line x1="-40" y1="-100" x2="0" y2="0" stroke="#EF9F27" stroke-width="0.8" opacity="0.2"/>
+<line x1="40" y1="-106" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.8" opacity="0.15"/>
+<line x1="-90" y1="50" x2="0" y2="0" stroke="#EF9F27" stroke-width="0.8" opacity="0.15"/>
+<line x1="90" y1="44" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.8" opacity="0.15"/>
+<line x1="0" y1="90" x2="0" y2="0" stroke="#EF9F27" stroke-width="0.8" opacity="0.15"/>
+<line x1="-60" y1="-14" x2="0" y2="0" stroke="#E24B4A" stroke-width="1.4" opacity="0.35"/>
+<line x1="60" y1="-24" x2="0" y2="0" stroke="#EF9F27" stroke-width="1.4" opacity="0.35"/>
+<line x1="-34" y1="56" x2="0" y2="0" stroke="#E24B4A" stroke-width="1.4" opacity="0.35"/>
+<line x1="34" y1="60" x2="0" y2="0" stroke="#EF9F27" stroke-width="1.4" opacity="0.35"/>
+<circle cx="0" cy="0" r="16" fill="url(#og)"/>
+<circle cx="0" cy="0" r="26" fill="none" stroke="url(#og)" stroke-width="1" opacity="0.3"/>
+</g>
+<text x="640" y="400" text-anchor="middle" font-family="'Space Grotesk', 'Syne', sans-serif" font-size="72" font-weight="800" letter-spacing="-3" fill="#f0f0f0">indexa</text>
+<rect x="510" y="412" width="260" height="3" rx="1.5" fill="url(#og2)" opacity="0.5"/>
+<text x="640" y="460" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#666" letter-spacing="4">10,000 LINES &#x2192; 1 FUNCTION</text>
+<g font-family="monospace" font-size="14" fill="#555">
+<text x="460" y="530" text-anchor="middle">symbols</text>
+<text x="570" y="530" text-anchor="middle">dependencies</text>
+<text x="710" y="530" text-anchor="middle">execution flows</text>
+<text x="840" y="530" text-anchor="middle">50% fewer tokens</text>
+<circle cx="420" cy="526" r="3" fill="#E24B4A" opacity="0.5"/>
+<circle cx="510" cy="526" r="3" fill="#EF9F27" opacity="0.5"/>
+<circle cx="644" cy="526" r="3" fill="url(#og)"/>
+<circle cx="788" cy="526" r="3" fill="#EF9F27" opacity="0.5"/>
+</g>
+</svg>

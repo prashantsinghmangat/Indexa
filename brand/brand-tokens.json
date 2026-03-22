@@ -1,0 +1,46 @@
+{
+  "brand": "Indexa",
+  "tagline": "10,000 lines \u2192 1 function",
+  "description": "Context engine for AI coding tools",
+
+  "colors": {
+    "primary": {
+      "coral":  "#E24B4A",
+      "amber":  "#EF9F27"
+    },
+    "gradient": {
+      "css": "linear-gradient(135deg, #E24B4A, #EF9F27)",
+      "svg_id": "indexa-grad",
+      "stops": [
+        { "offset": "0%",   "color": "#E24B4A" },
+        { "offset": "100%", "color": "#EF9F27" }
+      ]
+    },
+    "neutral": {
+      "black":    "#111111",
+      "dark":     "#1a1a1a",
+      "gray600":  "#666666",
+      "gray400":  "#999999",
+      "gray200":  "#cccccc",
+      "white":    "#ffffff"
+    },
+    "background": {
+      "light": "#ffffff",
+      "dark":  "#0d0d0d"
+    }
+  },
+
+  "typography": {
+    "display": "'Space Grotesk', 'Syne', 'Urbanist', sans-serif",
+    "body":    "'DM Sans', 'Manrope', sans-serif",
+    "mono":    "'JetBrains Mono', 'Fira Code', 'SF Mono', monospace"
+  },
+
+  "icon_sizes": {
+    "favicon":     "32x32",
+    "app_icon":    "128x128",
+    "vscode_icon": "256x256",
+    "og_image":    "1200x630",
+    "github_social": "1280x640"
+  }
+}

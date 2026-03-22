@@ -1,6 +1,15 @@
-# Indexa
+<p align="center">
+  <img src="https://raw.githubusercontent.com/prashantsinghmangat/Indexa/main/brand/banners/npm-readme-banner.svg" alt="Indexa" width="600" />
+</p>
 
-[![npm](https://img.shields.io/npm/v/indexa-mcp)](https://www.npmjs.com/package/indexa-mcp) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) [![GitHub](https://img.shields.io/github/stars/prashantsinghmangat/Indexa)](https://github.com/prashantsinghmangat/Indexa)
+<p align="center">
+  <a href="https://www.npmjs.com/package/indexa-mcp"><img src="https://img.shields.io/npm/v/indexa-mcp" alt="npm" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT" /></a>
+  <a href="https://github.com/prashantsinghmangat/Indexa"><img src="https://img.shields.io/github/stars/prashantsinghmangat/Indexa" alt="GitHub Stars" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence"><img src="https://img.shields.io/visual-studio-marketplace/v/PrashantSingh.indexa-code-intelligence" alt="VS Code" /></a>
+</p>
+
+# Indexa
 
 **Your AI reads 10,000 lines to find 1 function.**
 **Indexa gives it exactly what it needs.**

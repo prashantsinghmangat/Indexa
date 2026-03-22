@@ -2,7 +2,7 @@
   "name": "indexa-code-intelligence",
   "displayName": "Indexa — Code Intelligence Engine",
   "description": "Trace execution flows, find references, and understand code instantly. Stop reading files manually — ask Indexa, click the answer, jump to the line.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "PrashantSingh",
   "author": {
     "name": "Prashant Singh",
@@ -13,6 +13,7 @@
     "url": "https://github.com/prashantsinghmangat/Indexa"
   },
   "homepage": "https://github.com/prashantsinghmangat/Indexa",
+  "icon": "media/extension-icon.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"

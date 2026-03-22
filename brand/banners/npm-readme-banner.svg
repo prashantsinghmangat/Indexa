@@ -1,0 +1,25 @@
+<svg width="800" height="120" viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="rb" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#E24B4A"/>
+<stop offset="100%" stop-color="#EF9F27"/>
+</linearGradient>
+</defs>
+<rect width="800" height="120" rx="8" fill="#0d0d0d"/>
+<g transform="translate(50, 60)">
+<circle cx="-18" cy="-10" r="2.5" fill="#E24B4A" opacity="0.3"/>
+<circle cx="18" cy="-14" r="2.5" fill="#EF9F27" opacity="0.3"/>
+<circle cx="-12" cy="12" r="2" fill="#EF9F27" opacity="0.25"/>
+<circle cx="14" cy="14" r="2" fill="#E24B4A" opacity="0.25"/>
+<line x1="-18" y1="-10" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.5" opacity="0.25"/>
+<line x1="18" y1="-14" x2="0" y2="0" stroke="#EF9F27" stroke-width="0.5" opacity="0.25"/>
+<line x1="-12" y1="12" x2="0" y2="0" stroke="#EF9F27" stroke-width="0.5" opacity="0.25"/>
+<line x1="14" y1="14" x2="0" y2="0" stroke="#E24B4A" stroke-width="0.5" opacity="0.25"/>
+<circle cx="0" cy="0" r="6" fill="url(#rb)"/>
+</g>
+<text x="90" y="52" font-family="'Space Grotesk', sans-serif" font-size="32" font-weight="800" letter-spacing="-1.5" fill="#f0f0f0">indexa</text>
+<text x="90" y="78" font-family="sans-serif" font-size="14" fill="#666" letter-spacing="1">Context engine for AI coding tools</text>
+<rect x="500" y="38" width="260" height="44" rx="6" fill="#1a1a1a" stroke="#333" stroke-width="0.5"/>
+<text x="520" y="65" font-family="monospace" font-size="14" fill="#EF9F27">$</text>
+<text x="536" y="65" font-family="monospace" font-size="14" fill="#ccc">npx indexa-mcp setup</text>
+</svg>
