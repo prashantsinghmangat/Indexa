@@ -95,12 +95,8 @@ npx indexa-mcp explain "vendor pricing system"       # Code explanation
 
 Install the VS Code extension for a sidebar UI with search, flow tracing, and click-to-navigate:
 
-1. Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases)
-2. Install:
-   ```bash
-   code --install-extension indexa-code-intelligence-0.2.0.vsix
-   ```
-   Or: `Ctrl+Shift+P` → "Install from VSIX" → select the file.
+1. **From Marketplace (recommended):** Search "Indexa Code Intelligence" in VS Code Extensions, or visit [Indexa on Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
+2. **Or from GitHub:** Download `.vsix` from [Releases](https://github.com/prashantsinghmangat/Indexa/releases) → `code --install-extension indexa-code-intelligence-0.2.0.vsix`
 3. The extension auto-starts the Indexa server — no manual terminal needed.
 4. Use `Ctrl+Shift+I` to open the Indexa sidebar and start querying.
 

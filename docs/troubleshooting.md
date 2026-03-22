@@ -158,10 +158,7 @@ npx indexa-mcp serve --port 8080
 
 **Checklist:**
 1. Verify the extension is installed: `code --list-extensions | grep indexa`
-2. If not installed, download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases) and install:
-   ```bash
-   code --install-extension indexa-code-intelligence-0.2.0.vsix
-   ```
+2. If not installed: search "Indexa Code Intelligence" in VS Code Extensions, or visit [Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence). Alternatively, download `.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases).
 3. **Reload VS Code** — `Ctrl+Shift+P` → "Developer: Reload Window"
 4. Check that `npx indexa-mcp setup` has been run in the project (the extension needs `.indexa/` data)
 5. Look for the Indexa icon in the Activity Bar (left sidebar). If missing, right-click the Activity Bar and ensure Indexa is checked.

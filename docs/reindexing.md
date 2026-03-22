@@ -81,10 +81,7 @@ Best for: re-indexing from within the editor.
 
 Use the **Reindex** command in the VS Code extension (`Ctrl+Shift+P` → "Indexa: Reindex"). This triggers a full re-index of the current workspace.
 
-If you don't have the extension yet, download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases) and install:
-```bash
-code --install-extension indexa-code-intelligence-0.2.0.vsix
-```
+If you don't have the extension yet, install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence) or download `.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases).
 
 ---
 

@@ -279,12 +279,17 @@ A full-featured sidebar extension with search, flow tracing, references, and cli
 
 ### Install
 
-1. Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases)
-2. Install:
-   ```bash
-   code --install-extension indexa-code-intelligence-0.2.0.vsix
-   ```
-   Or in VS Code: `Ctrl+Shift+P` → "Install from VSIX" → select the downloaded file.
+**From VS Code Marketplace (recommended):**
+
+Search "Indexa Code Intelligence" in VS Code Extensions, or install directly:
+[Indexa on VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
+
+**Or from GitHub Releases:**
+
+Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases), then:
+```bash
+code --install-extension indexa-code-intelligence-0.2.0.vsix
+```
 
 ### Features
 
