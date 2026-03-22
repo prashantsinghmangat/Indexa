@@ -79,7 +79,12 @@ Requires the Indexa server to be running (`npx indexa-mcp serve`).
 
 Best for: re-indexing from within the editor.
 
-Use the **Reindex** command in the VS Code extension. This triggers a full re-index of the current workspace.
+Use the **Reindex** command in the VS Code extension (`Ctrl+Shift+P` → "Indexa: Reindex"). This triggers a full re-index of the current workspace.
+
+If you don't have the extension yet, download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases) and install:
+```bash
+code --install-extension indexa-code-intelligence-0.2.0.vsix
+```
 
 ---
 
@@ -125,7 +130,7 @@ After changing patterns, run a full re-index.
 
 ## How Change Detection Works
 
-1. When a file is indexed, its **SHA-256 hash** (first 16 chars) is stored in `data/metadata.json`
+1. When a file is indexed, its **SHA-256 hash** (first 16 chars) is stored in `.indexa/metadata.json` (or `data/metadata.json` for legacy installs)
 2. On re-index, the file's current hash is compared with the stored hash
 3. If they match → file is skipped (no work done)
 4. If they differ → old chunks are removed, file is re-parsed, new chunks are stored

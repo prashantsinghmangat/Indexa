@@ -275,11 +275,22 @@ indexa-mcp serve                    # REST API on :3000
 
 ## VS Code Extension
 
-Install from `indexa-vscode/indexa-0.1.0.vsix`:
+A full-featured sidebar extension with search, flow tracing, references, and click-to-navigate (opens file at exact line). Type-aware icons for functions, components, services, and more. Auto-starts the Indexa server — no manual terminal needed.
+
+### Install
+
+1. Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases)
+2. Install:
+   ```bash
+   code --install-extension indexa-code-intelligence-0.2.0.vsix
+   ```
+   Or in VS Code: `Ctrl+Shift+P` → "Install from VSIX" → select the downloaded file.
+
+### Features
 
 | Command | Shortcut | What it does |
 |---------|----------|-------------|
-| **Ask Indexa** | `Ctrl+Shift+I` | Query from editor |
+| **Ask Indexa** | `Ctrl+Shift+I` | Query from sidebar with clickable example queries |
 | **Explain This** | — | Explain selected code |
 | **Show Flow** | — | Trace from selection |
 | **Find References** | — | Usages + blast radius |

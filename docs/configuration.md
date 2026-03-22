@@ -147,6 +147,7 @@ my-project/
 - `.indexa/` is automatically added to `.gitignore` during setup
 - Works on any developer's machine — no hardcoded paths in the data
 - MCP config in `.mcp.json` points to the local `.indexa/` directory
+- The VS Code extension also reads from `.indexa/` — install once, works per-project automatically
 
 ### Legacy Storage
 

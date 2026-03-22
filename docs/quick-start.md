@@ -91,12 +91,18 @@ npx indexa-mcp explain "vendor pricing system"       # Code explanation
 - _"fix login bug"_ → **debug** intent → boosts path context
 - _"VendorAuthGuard"_ → **symbol lookup** → direct name match
 
-## 6. Use with VS Code
+## 6. Use with VS Code (Optional)
 
-Install the extension from `indexa-vscode/indexa-0.1.0.vsix`:
-1. `Ctrl+Shift+P` → "Install from VSIX"
-2. Start the server: `npx indexa-mcp serve`
-3. Use `Ctrl+Shift+I` to ask Indexa
+Install the VS Code extension for a sidebar UI with search, flow tracing, and click-to-navigate:
+
+1. Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases)
+2. Install:
+   ```bash
+   code --install-extension indexa-code-intelligence-0.2.0.vsix
+   ```
+   Or: `Ctrl+Shift+P` → "Install from VSIX" → select the file.
+3. The extension auto-starts the Indexa server — no manual terminal needed.
+4. Use `Ctrl+Shift+I` to open the Indexa sidebar and start querying.
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|

@@ -156,6 +156,19 @@ Index statistics and cache status. No parameters.
 
 ---
 
+## Alternative: VS Code Extension
+
+If you prefer a visual interface over MCP-only workflow, the Indexa VS Code extension provides a sidebar with search, flow tracing, and references — all with click-to-navigate that opens files at the exact line.
+
+1. Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases)
+2. Install: `code --install-extension indexa-code-intelligence-0.2.0.vsix`
+3. The extension auto-starts the server — no manual `indexa-mcp serve` needed.
+4. Use `Ctrl+Shift+I` to query from the sidebar.
+
+The extension and MCP integration work independently. You can use both — MCP for Claude Code conversations, and the extension for quick lookups in VS Code.
+
+---
+
 ## Re-indexing from Claude Code
 
 Ask Claude directly:
