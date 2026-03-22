@@ -1,20 +1,82 @@
 {
-  "name": "indexa",
-  "displayName": "Indexa — Code Intelligence",
-  "description": "AI-powered code search, explanation, and flow tracing. Reduces LLM token usage by 50%+.",
-  "version": "0.1.0",
-  "publisher": "indexa",
+  "name": "indexa-code-intelligence",
+  "displayName": "Indexa — Code Intelligence Engine",
+  "description": "Trace execution flows, find references, and understand code instantly. Stop reading files manually — ask Indexa, click the answer, jump to the line.",
+  "version": "0.2.0",
+  "publisher": "PrashantSingh",
+  "author": {
+    "name": "Prashant Singh",
+    "url": "https://prashantsinghmangat.netlify.app/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/prashantsinghmangat/Indexa"
+  },
+  "homepage": "https://github.com/prashantsinghmangat/Indexa",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
-  "categories": ["Other"],
+  "categories": ["Programming Languages", "Other"],
+  "keywords": [
+    "code intelligence",
+    "code search",
+    "execution flow",
+    "code tracing",
+    "MCP",
+    "AI context",
+    "token reduction",
+    "codebase understanding",
+    "symbol search",
+    "references"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "indexa",
+          "title": "Indexa",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "indexa": [
+        {
+          "id": "indexaSidebar",
+          "name": "Code Intelligence",
+          "type": "tree"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "indexaSidebar",
+        "contents": "Ask Indexa anything about your codebase.\n[Search Code](command:indexa.sidebarSearch)\n[Trace Flow](command:indexa.sidebarFlow)\n[Find References](command:indexa.sidebarReferences)"
+      }
+    ],
     "commands": [
       {
         "command": "indexa.ask",
-        "title": "Ask Indexa"
+        "title": "Ask Indexa",
+        "icon": "$(search)"
+      },
+      {
+        "command": "indexa.sidebarSearch",
+        "title": "Indexa: Search in Sidebar",
+        "icon": "$(search)"
+      },
+      {
+        "command": "indexa.sidebarFlow",
+        "title": "Indexa: Trace Flow",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "indexa.sidebarReferences",
+        "title": "Indexa: Find References",
+        "icon": "$(references)"
       },
       {
         "command": "indexa.explain",
@@ -38,6 +100,23 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "indexa.sidebarSearch",
+          "when": "view == indexaSidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "indexa.sidebarFlow",
+          "when": "view == indexaSidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "indexa.sidebarReferences",
+          "when": "view == indexaSidebar",
+          "group": "navigation@3"
+        }
+      ],
       "editor/context": [
         {
           "command": "indexa.explain",

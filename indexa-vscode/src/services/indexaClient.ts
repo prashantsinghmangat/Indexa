@@ -233,6 +233,27 @@ export async function references(symbolName: string): Promise<IndexaResult> {
   return { text, tokenEstimate: Math.ceil(raw.length / 4), sources };
 }
 
+// ─── Raw API methods (return structured data for sidebar TreeView) ───────────
+
+/** Get raw context bundle data */
+export async function contextBundleRaw(query: string): Promise<any> {
+  const budget = getTokenBudget();
+  const raw = await request('POST', '/api/context-bundle', { query, tokenBudget: budget });
+  return JSON.parse(raw);
+}
+
+/** Get raw flow data */
+export async function flowRaw(query: string, depth: number = 3): Promise<any> {
+  const raw = await request('POST', '/api/flow', { query, depth });
+  return JSON.parse(raw);
+}
+
+/** Get raw references data */
+export async function referencesRaw(symbolName: string): Promise<any> {
+  const raw = await request('GET', `/api/references?name=${encodeURIComponent(symbolName)}`);
+  return JSON.parse(raw);
+}
+
 /** Health check */
 export async function health(): Promise<string> {
   try {

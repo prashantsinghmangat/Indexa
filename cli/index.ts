@@ -178,8 +178,9 @@ program
   .command('serve')
   .description('Start the Indexa API server')
   .option('-p, --port <number>', 'Server port', '3000')
+  .option('--data-dir <path>', 'Custom data directory')
   .action((opts) => {
-    startServer({ port: parseInt(opts.port, 10) });
+    startServer({ port: parseInt(opts.port, 10), dataDir: opts.dataDir });
   });
 
 // Default: show help if no command provided
