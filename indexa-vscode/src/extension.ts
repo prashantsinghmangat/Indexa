@@ -10,6 +10,7 @@ import {
 import { health } from './services/indexaClient';
 import { ensureServer, stopServer } from './services/serverManager';
 import { IndexaSidebarProvider } from './ui/sidebarProvider';
+import { copyForAI, openForCopilot } from './services/aiBridge';
 
 let statusBarItem: vscode.StatusBarItem;
 let sidebarProvider: IndexaSidebarProvider;
@@ -103,6 +104,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showErrorMessage(`Cannot open: ${filePath}:${line}`);
       }
     }),
+  );
+
+  // ─── AI Bridge Commands ─────────────────────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand('indexa.copyForAI', () => copyForAI()),
+    vscode.commands.registerCommand('indexa.fixBug', () => copyForAI('fix')),
+    vscode.commands.registerCommand('indexa.openForCopilot', () => openForCopilot()),
   );
 
   // Legacy commands (still work via command palette / webview)

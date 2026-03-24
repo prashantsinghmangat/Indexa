@@ -98,6 +98,21 @@
       {
         "command": "indexa.health",
         "title": "Indexa: Health Check"
+      },
+      {
+        "command": "indexa.copyForAI",
+        "title": "Indexa: Copy for AI",
+        "icon": "$(clippy)"
+      },
+      {
+        "command": "indexa.fixBug",
+        "title": "Indexa: Fix Bug with AI",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "indexa.openForCopilot",
+        "title": "Indexa: Open Files for Copilot",
+        "icon": "$(files)"
       }
     ],
     "menus": {
@@ -133,9 +148,33 @@
           "command": "indexa.references",
           "group": "indexa@3",
           "when": "editorHasSelection"
+        },
+        {
+          "submenu": "indexa.aiSubmenu",
+          "group": "indexa@4"
+        }
+      ],
+      "indexa.aiSubmenu": [
+        {
+          "command": "indexa.copyForAI",
+          "group": "ai@1"
+        },
+        {
+          "command": "indexa.fixBug",
+          "group": "ai@2"
+        },
+        {
+          "command": "indexa.openForCopilot",
+          "group": "ai@3"
         }
       ]
     },
+    "submenus": [
+      {
+        "id": "indexa.aiSubmenu",
+        "label": "Indexa AI"
+      }
+    ],
     "configuration": {
       "title": "Indexa",
       "properties": {

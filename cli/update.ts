@@ -58,7 +58,18 @@ export async function indexCommand(
   logger.info(`Indexing directory: ${dir}`);
   const start = Date.now();
 
+  // Progress bar
+  updater.onProgress = (current, total, file, chunks) => {
+    const pct = Math.round((current / total) * 100);
+    const barLen = 30;
+    const filled = Math.round(barLen * current / total);
+    const bar = '█'.repeat(filled) + '░'.repeat(barLen - filled);
+    const line = `  ${bar} ${pct}% (${current}/${total}) ${chunks} chunks — ${file}`;
+    process.stdout.write(`\r${line.padEnd(80)}`);
+  };
+
   const result = await updater.indexAll(dir);
+  process.stdout.write('\r' + ' '.repeat(80) + '\r'); // clear progress line
 
   const elapsed = ((Date.now() - start) / 1000).toFixed(2);
   console.log(`\nIndexing complete in ${elapsed}s`);

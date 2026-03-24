@@ -35,6 +35,9 @@ export class Updater {
     this.metadataDB = metadataDB;
   }
 
+  /** Progress callback type */
+  onProgress?: (current: number, total: number, file: string, chunks: number) => void;
+
   /** Full index of all matching files in the project */
   async indexAll(targetDir?: string): Promise<{ indexed: number; chunks: number }> {
     const dir = targetDir || this.config.projectRoot;
@@ -43,10 +46,17 @@ export class Updater {
     logger.info(`Found ${files.length} files to index in ${dir}`);
 
     let totalChunks = 0;
+    let processed = 0;
 
     for (const file of files) {
       const chunks = await this.indexFile(file);
       totalChunks += chunks;
+      processed++;
+
+      if (this.onProgress) {
+        const shortName = path.basename(file);
+        this.onProgress(processed, files.length, shortName, totalChunks);
+      }
     }
 
     this.vectorDB.save();

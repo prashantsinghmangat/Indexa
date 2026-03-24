@@ -454,6 +454,188 @@ server.tool(
   }
 );
 
+// ============================================================
+// TOOL 10: indexa_security_scan — File-level deep security analysis
+// Returns FULL code for security-relevant files, grouped by domain,
+// so the LLM can do deep analysis (like Claude's Agent:Scan).
+// ============================================================
+
+// Security domains: what to look for and where
+const SECURITY_DOMAINS: Record<string, {
+  label: string;
+  description: string;
+  namePatterns: RegExp[];
+  pathPatterns: RegExp[];
+  codePatterns: RegExp[];
+}> = {
+  auth: {
+    label: 'Authentication & Session',
+    description: 'Login, logout, token exchange, session management, JWT handling, cookie management',
+    namePatterns: [/auth/i, /login/i, /logout/i, /session/i, /token/i, /credential/i, /jwt/i, /pkce/i, /oauth/i, /bearer/i, /principal/i],
+    pathPatterns: [/auth/i, /login/i, /session/i],
+    codePatterns: [/localStorage|sessionStorage|cookie|Bearer|Authorization|withCredentials|token|password/i],
+  },
+  access: {
+    label: 'Access Control & Permissions',
+    description: 'Permission checks, role-based access, admin guards, route protection',
+    namePatterns: [/permission/i, /guard/i, /role/i, /access/i, /admin/i, /canEdit|canDelete|canAccess/i, /isAdmin/i],
+    pathPatterns: [/permission/i, /guard/i, /role/i],
+    codePatterns: [/isAdmin|hasPermission|canAccess|permission.*=.*(?:true|false)/i],
+  },
+  api: {
+    label: 'API & Data Exposure',
+    description: 'HTTP clients, API endpoints, request/response handling, CORS, error responses',
+    namePatterns: [/axios|http|fetch|client|interceptor|cors/i, /api.*base|base.*url/i],
+    pathPatterns: [/axiosClient|httpClient|apiClient/i, /interceptor/i],
+    codePatterns: [/withCredentials|Access-Control|\.post\(|\.get\(|\.put\(|\.delete\(/i],
+  },
+  injection: {
+    label: 'Injection & XSS',
+    description: 'innerHTML, dangerouslySetInnerHTML, eval, dynamic HTML, URL construction',
+    namePatterns: [/sanitize|escape|encode|decode|html/i],
+    pathPatterns: [/sanitize/i],
+    codePatterns: [/innerHTML|dangerouslySetInnerHTML|eval\s*\(|document\.write|new\s+Function/i],
+  },
+  secrets: {
+    label: 'Secrets & Configuration',
+    description: 'API keys, hardcoded URLs, environment variables, config files',
+    namePatterns: [/config|env|secret|key|url|base|domain/i],
+    pathPatterns: [/config|\.env|auth0/i],
+    codePatterns: [/api[_-]?key|secret|password.*=.*['"]|https?:\/\/[a-z]+\.(sgpdev|safeguard)/i],
+  },
+  crypto: {
+    label: 'Cryptographic Operations',
+    description: 'Hashing, encryption, JWT validation, token verification',
+    namePatterns: [/hash|crypt|sign|verify|jwt|encode|decode/i],
+    pathPatterns: [/crypto|jwt/i],
+    codePatterns: [/crypto|\.sign\(|\.verify\(|isRealJwt|hashContent/i],
+  },
+};
+
+server.tool(
+  'indexa_security_scan',
+  'Deep file-level security scan. Returns FULL code for all security-relevant symbols grouped by security domain (auth, access control, API, injection, secrets, crypto). Designed for LLM deep analysis — use this, then analyze each domain for vulnerabilities.',
+  {
+    domain: z.string().optional().describe('Security domain to scan: auth, access, api, injection, secrets, crypto, or "all" (default). Use one domain at a time for deep analysis.'),
+    tokenBudget: z.coerce.number().optional().describe('Max tokens per domain (default 8000). Higher = more complete code.'),
+  },
+  async ({ domain, tokenBudget }) => {
+    const budget = tokenBudget || 8000;
+    const domainsToScan = domain && domain !== 'all'
+      ? { [domain]: SECURITY_DOMAINS[domain] }
+      : SECURITY_DOMAINS;
+
+    if (domain && domain !== 'all' && !SECURITY_DOMAINS[domain]) {
+      return { content: [{ type: 'text' as const, text: `Unknown domain "${domain}". Available: ${Object.keys(SECURITY_DOMAINS).join(', ')}` }] };
+    }
+
+    const chunks = vectorDB.getAll();
+    const output: string[] = [`# Security Scan — ${chunks.length} symbols analyzed\n`];
+
+    let totalFindings = 0;
+
+    for (const [domainKey, domainDef] of Object.entries(domainsToScan)) {
+      if (!domainDef) continue;
+
+      // Find all security-relevant chunks for this domain
+      const matches: Array<{ chunk: typeof chunks[0]; score: number; matchReason: string }> = [];
+
+      for (const chunk of chunks) {
+        let score = 0;
+        const reasons: string[] = [];
+
+        // Check name patterns
+        for (const p of domainDef.namePatterns) {
+          if (p.test(chunk.name)) { score += 3; reasons.push(`name: ${chunk.name}`); break; }
+        }
+
+        // Check path patterns
+        for (const p of domainDef.pathPatterns) {
+          if (p.test(chunk.filePath)) { score += 2; reasons.push(`path`); break; }
+        }
+
+        // Check code content
+        const code = readCodeAtOffset(chunk.filePath, chunk.byteOffset, Math.min(chunk.byteLength, 3000));
+        if (code) {
+          for (const p of domainDef.codePatterns) {
+            if (p.test(code)) { score += 2; reasons.push(`code pattern`); break; }
+          }
+        }
+
+        if (score > 0) {
+          matches.push({ chunk, score, matchReason: reasons.join(', ') });
+        }
+      }
+
+      // Sort by relevance and deduplicate by file (max 3 per file)
+      matches.sort((a, b) => b.score - a.score);
+      const fileCount = new Map<string, number>();
+      const filtered = matches.filter(m => {
+        const count = fileCount.get(m.chunk.filePath) || 0;
+        if (count >= 3) return false;
+        fileCount.set(m.chunk.filePath, count + 1);
+        return true;
+      });
+
+      if (filtered.length === 0) continue;
+
+      totalFindings += filtered.length;
+
+      output.push(`## ${domainDef.label} (${filtered.length} symbols)`);
+      output.push(`> ${domainDef.description}`);
+      output.push('');
+
+      // Pack symbols within budget
+      let domainTokens = 0;
+      let symbolsIncluded = 0;
+
+      for (const match of filtered) {
+        const code = readCodeAtOffset(match.chunk.filePath, match.chunk.byteOffset, match.chunk.byteLength);
+        if (!code) continue;
+
+        const codeTokens = Math.ceil(code.length / 4);
+        if (domainTokens + codeTokens > budget && symbolsIncluded > 0) {
+          output.push(`... +${filtered.length - symbolsIncluded} more symbols in this domain (increase tokenBudget to see all)\n`);
+          break;
+        }
+
+        const shortFile = match.chunk.filePath
+          .replace(/.*[/\\](src|public|react-shell)[/\\]/, '$1/')
+          .replace(/\\/g, '/');
+
+        output.push(`### ${match.chunk.name} (${match.chunk.type})`);
+        output.push(`File: ${shortFile}:${match.chunk.startLine}-${match.chunk.endLine} | Matched: ${match.matchReason}`);
+        output.push('```');
+        output.push(code);
+        output.push('```');
+        output.push('');
+
+        domainTokens += codeTokens;
+        symbolsIncluded++;
+      }
+    }
+
+    if (totalFindings === 0) {
+      output.push('No security-relevant symbols found.');
+    }
+
+    // Add analysis instructions for the LLM
+    output.push('---');
+    output.push('## Analysis Instructions');
+    output.push('For each symbol above, check for:');
+    output.push('- **A01 Broken Access Control**: Missing auth checks, IDOR, privilege escalation');
+    output.push('- **A02 Cryptographic Failures**: Hardcoded secrets, weak algorithms, plaintext tokens');
+    output.push('- **A03 Injection**: XSS via innerHTML, eval(), template injection, SQL injection');
+    output.push('- **A05 Security Misconfiguration**: Dev mode in production, permissive CORS, verbose errors');
+    output.push('- **A07 Auth Failures**: Weak session management, missing logout, insecure cookie flags');
+    output.push('- **A09 Logging Failures**: Sensitive data in console.log');
+    output.push('');
+    output.push('For each finding provide: Severity, CWE ID, OWASP category, vulnerable code, fix, and blast radius.');
+
+    return { content: [{ type: 'text' as const, text: output.join('\n') }] };
+  }
+);
+
 // --- Start ---
 
 async function main() {
