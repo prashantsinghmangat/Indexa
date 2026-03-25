@@ -73,8 +73,16 @@ const explainEngine = new ExplainEngine(graph, search);
 
 const server = new McpServer({
   name: 'indexa',
-  version: '3.0.0',
+  version: '3.4.0',
 });
+
+/** Guard: returns error text if index is empty, null otherwise */
+function emptyIndexGuard(): string | null {
+  if (vectorDB.size === 0) {
+    return 'Index is empty. Run "indexa setup" or "indexa index <directory>" first to index your codebase.';
+  }
+  return null;
+}
 
 // ============================================================
 // TOOL 1 (PRIMARY): indexa_context_bundle
@@ -88,6 +96,9 @@ server.tool(
     tokenBudget: z.coerce.number().min(100).default(2000).describe('Max tokens (1000-3000 for focused results)'),
   },
   async ({ query, tokenBudget }) => {
+    const empty = emptyIndexGuard();
+    if (empty) return { content: [{ type: 'text' as const, text: empty }] };
+
     const cacheKey = QueryCache.key('bundle', { query, tokenBudget });
     const cached = cache.get<string>(cacheKey);
     if (cached) return { content: [{ type: 'text' as const, text: cached }] };
@@ -156,6 +167,9 @@ server.tool(
     depth: z.coerce.number().min(1).max(6).default(3).describe('How many levels deep to trace'),
   },
   async ({ query, depth }) => {
+    const empty = emptyIndexGuard();
+    if (empty) return { content: [{ type: 'text' as const, text: empty }] };
+
     const cacheKey = QueryCache.key('flow', { query, depth });
     const cached = cache.get<string>(cacheKey);
     if (cached) return { content: [{ type: 'text' as const, text: cached }] };
@@ -1002,11 +1016,36 @@ server.tool(
 // --- Start ---
 
 async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  try {
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+  } catch (err) {
+    process.stderr.write(`[Indexa] Failed to start MCP server: ${err}\n`);
+    process.stderr.write(`[Indexa] Data dir: ${config.dataDir}\n`);
+    process.stderr.write(`[Indexa] Config: ${CONFIG_PATH}\n`);
+
+    // Check common issues and give specific guidance
+    const fs = require('fs');
+    if (!fs.existsSync(config.dataDir)) {
+      process.stderr.write(`[Indexa] Data directory does not exist. Run: indexa setup\n`);
+    }
+
+    process.exit(1);
+  }
 }
 
+// Handle uncaught errors gracefully — log and continue where possible
+process.on('uncaughtException', (err) => {
+  process.stderr.write(`[Indexa] Uncaught error: ${err.message}\n`);
+  process.stderr.write(`[Indexa] Stack: ${err.stack}\n`);
+  // Don't exit — let the MCP server try to continue
+});
+
+process.on('unhandledRejection', (reason) => {
+  process.stderr.write(`[Indexa] Unhandled rejection: ${reason}\n`);
+});
+
 main().catch((err) => {
-  process.stderr.write(`Indexa MCP error: ${err}\n`);
+  process.stderr.write(`[Indexa] Fatal startup error: ${err}\n`);
   process.exit(1);
 });

@@ -200,11 +200,34 @@ export async function setupCommand(targetDir?: string): Promise<void> {
     ? path.resolve(targetDir)
     : detectProjectRoot(process.cwd());
 
+  // Validate the directory exists and looks like a project
+  if (!fs.existsSync(projectRoot)) {
+    fail(`Directory not found: ${projectRoot}`);
+    print('    Check the path and try again.');
+    return;
+  }
+
   const project = detectProjectType(projectRoot);
   const dataDir = getProjectDataDir(projectRoot);
+
+  // Warn if directory doesn't look like a code project
+  const hasPackageJson = fs.existsSync(path.join(projectRoot, 'package.json'));
+  const hasTsConfig = fs.existsSync(path.join(projectRoot, 'tsconfig.json'));
+  const hasGit = fs.existsSync(path.join(projectRoot, '.git'));
+
+  if (!hasPackageJson && !hasTsConfig && !hasGit) {
+    warn(`"${projectRoot}" doesn't look like a JS/TS project (no package.json, tsconfig.json, or .git).`);
+    warn('Indexa will still try to index, but results may be empty.');
+    print('');
+  }
+
   success(`Project: ${path.basename(projectRoot)}`);
   success(`Type: ${project.lang} / ${project.framework}`);
-  if (project.files > 0) success(`Files: ~${project.files} source files`);
+  if (project.files > 0) {
+    success(`Files: ~${project.files} source files`);
+  } else if (project.files === 0) {
+    warn('No .ts/.tsx/.js/.jsx files found. Index will be empty.');
+  }
   print('');
 
   // ─── Step 2: Ensure data directory ────────────────────────────────────

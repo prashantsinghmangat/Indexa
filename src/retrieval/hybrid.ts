@@ -212,7 +212,12 @@ export class HybridSearch {
     for (const qt of queryTokens) {
       if (nameTokens.some(nt => nt === qt)) {
         matches += 1.0;
-      } else if (nameTokens.some(nt => nt.includes(qt) || qt.includes(nt))) {
+      } else if (nameTokens.some(nt => {
+        // Only count substring match if the shorter string is >= 4 chars
+        // Prevents "user" matching "server", "get" matching "target", etc.
+        if (nt.length < 4 && qt.length < 4) return false;
+        return nt.includes(qt) || qt.includes(nt);
+      })) {
         matches += 0.5;
       }
     }

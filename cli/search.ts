@@ -565,6 +565,7 @@ export function impactChainCommand(
 
 /**
  * CLI watch command — watch for file changes and re-index incrementally.
+ * Uses debouncing, handles deletions, and gives clear status output.
  */
 export async function watchCommand(
   options: { dataDir?: string; directory?: string }
@@ -593,59 +594,112 @@ export async function watchCommand(
 
   const updater = new Updater(config, vectorDB, metadataDB, embedder);
 
-  console.log(`\n Indexa Watch Mode — monitoring ${dir}`);
+  console.log(`\n Indexa Watch Mode`);
+  console.log(`  Directory: ${dir}`);
+  console.log(`  Index: ${vectorDB.size} chunks`);
+  console.log('  Watching for .ts, .tsx, .js, .jsx changes...');
   console.log('  Press Ctrl+C to stop.\n');
 
-  const extensions = new Set(['.ts', '.tsx', '.js', '.jsx']);
-  const ignoreDirs = new Set(['node_modules', 'dist', '.git', '.indexa']);
+  const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
+  const IGNORE_PATTERNS = ['node_modules', 'dist', '.git', '.indexa', '.next', 'out', 'build', 'coverage'];
 
-  // Debounce: collect changes for 1s before re-indexing
-  let pending = new Set<string>();
+  // Debounce: collect changes for 1.5s before re-indexing
+  const pending = new Map<string, 'change' | 'delete'>();
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let processing = false;
+
+  const shouldIgnore = (filename: string): boolean => {
+    const parts = filename.replace(/\\/g, '/').split('/');
+    return parts.some(p => IGNORE_PATTERNS.includes(p));
+  };
 
   const processChanges = async () => {
-    const files = [...pending];
-    pending.clear();
+    if (processing) return; // Prevent concurrent processing
+    processing = true;
     timer = null;
 
-    let reindexed = 0;
-    for (const file of files) {
+    const changes = new Map(pending);
+    pending.clear();
+
+    let indexed = 0;
+    let deleted = 0;
+    let errors = 0;
+
+    for (const [file, action] of changes) {
       try {
-        if (fs.existsSync(file)) {
+        if (action === 'delete' || !fs.existsSync(file)) {
+          // File was deleted — remove its chunks
+          const existing = metadataDB.getFile(file.replace(/\\/g, '/'));
+          if (existing) {
+            for (const chunkId of existing.chunkIds) vectorDB.remove(chunkId);
+            metadataDB.removeFile(file.replace(/\\/g, '/'));
+            deleted++;
+          }
+        } else {
           const chunks = await (updater as any).indexFile(file);
-          reindexed += chunks;
+          indexed += chunks;
         }
-      } catch { /* skip errors */ }
+      } catch (err) {
+        errors++;
+        logger.debug(`Watch: failed to process ${path.basename(file)}: ${err}`);
+      }
     }
-    if (reindexed > 0) {
+
+    if (indexed > 0 || deleted > 0) {
       vectorDB.save();
       metadataDB.save();
-      console.log(`  Re-indexed ${files.length} files (${reindexed} chunks)`);
+
+      const parts: string[] = [];
+      if (indexed > 0) parts.push(`${indexed} chunks indexed`);
+      if (deleted > 0) parts.push(`${deleted} files removed`);
+      if (errors > 0) parts.push(`${errors} errors`);
+
+      const time = new Date().toLocaleTimeString();
+      console.log(`  [${time}] ${changes.size} files → ${parts.join(', ')} (total: ${vectorDB.size})`);
+    }
+
+    processing = false;
+
+    // If new changes arrived while processing, trigger again
+    if (pending.size > 0) {
+      timer = setTimeout(processChanges, 500);
     }
   };
 
-  const watchRecursive = (watchDir: string) => {
-    try {
-      fs.watch(watchDir, { recursive: true }, (_event, filename) => {
-        if (!filename) return;
-        const fullPath = path.join(watchDir, filename);
-        const ext = path.extname(filename);
-        if (!extensions.has(ext)) return;
+  try {
+    fs.watch(dir, { recursive: true }, (_event, filename) => {
+      if (!filename) return;
 
-        // Skip ignored dirs
-        const parts = filename.replace(/\\/g, '/').split('/');
-        if (parts.some(p => ignoreDirs.has(p))) return;
+      // Fast reject: check extension before anything else
+      const ext = path.extname(filename).toLowerCase();
+      if (!EXTENSIONS.has(ext)) return;
 
-        pending.add(fullPath);
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(processChanges, 1000);
-      });
-    } catch {
-      logger.error(`Cannot watch directory: ${watchDir}`);
+      // Fast reject: check ignore patterns
+      if (shouldIgnore(filename)) return;
+
+      const fullPath = path.resolve(dir, filename);
+      const action = fs.existsSync(fullPath) ? 'change' as const : 'delete' as const;
+      pending.set(fullPath, action);
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(processChanges, 1500);
+    });
+  } catch (err) {
+    console.error(`  Cannot watch directory: ${err instanceof Error ? err.message : err}`);
+    console.error('  Make sure the directory exists and you have permissions.');
+    process.exit(1);
+  }
+
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\n  Stopping watch mode...');
+    if (pending.size > 0) {
+      console.log(`  Saving ${pending.size} pending changes...`);
+      vectorDB.save();
+      metadataDB.save();
     }
-  };
-
-  watchRecursive(dir);
+    process.exit(0);
+  });
 
   // Keep the process alive
   await new Promise(() => {});

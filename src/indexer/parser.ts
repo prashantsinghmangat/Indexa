@@ -31,7 +31,22 @@ export class Parser {
       return [];
     }
 
-    const content = fs.readFileSync(absPath, 'utf-8');
+    // Skip binary/non-text files
+    let content: string;
+    try {
+      const raw = fs.readFileSync(absPath);
+      // Detect binary: check for null bytes in first 8KB
+      const sample = raw.subarray(0, 8192);
+      if (sample.includes(0)) {
+        logger.debug(`Skipping binary file: ${absPath}`);
+        return [];
+      }
+      content = raw.toString('utf-8');
+    } catch (err) {
+      logger.warn(`Cannot read file ${absPath}: ${err instanceof Error ? err.message : err}`);
+      return [];
+    }
+
     const ext = path.extname(absPath);
     const normalizedPath = normalizePath(absPath);
 

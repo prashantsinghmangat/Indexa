@@ -38,7 +38,8 @@
     "dev": "ts-node src/server/index.ts",
     "cli": "ts-node cli/index.ts",
     "indexa": "node dist/cli/index.js",
-    "mcp": "node dist/src/mcp/stdio.js"
+    "mcp": "node dist/src/mcp/stdio.js",
+    "test": "node dist/tests/integration.test.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",

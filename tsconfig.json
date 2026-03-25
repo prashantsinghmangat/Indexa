@@ -15,6 +15,6 @@
     "sourceMap": true,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*", "cli/**/*"],
+  "include": ["src/**/*", "cli/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist", "data", "sample-code"]
 }

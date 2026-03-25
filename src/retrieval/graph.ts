@@ -37,16 +37,9 @@ export class GraphAnalysis {
     );
   }
 
-  /** Find symbols that depend on a given symbol name */
+  /** Find symbols that depend on a given symbol name — uses reverse index for O(1) */
   findReferences(symbolName: string): IndexedChunk[] {
-    const lower = symbolName.toLowerCase();
-    const allChunks = this.vectorDB.getAll();
-
-    return allChunks.filter(chunk => {
-      // Check if this chunk's dependencies reference the symbol
-      return chunk.dependencies.some(dep => dep.toLowerCase().includes(lower))
-        || chunk.imports.some(imp => imp.name.toLowerCase().includes(lower));
-    });
+    return this.vectorDB.findDependents(symbolName);
   }
 
   /** Get class hierarchy — find parent/child relationships */
@@ -438,10 +431,17 @@ export class GraphAnalysis {
     // Skip very small chunks (< 4 lines) — they'll match trivially
     const meaningful = allChunks.filter(c => (c.endLine - c.startLine) >= 4);
 
-    for (let i = 0; i < meaningful.length; i++) {
-      for (let j = i + 1; j < meaningful.length; j++) {
-        const a = meaningful[i];
-        const b = meaningful[j];
+    // Cap at 2000 chunks to prevent O(n²) from hanging on large codebases
+    // 2000² = 4M comparisons ≈ 2-3 seconds
+    const capped = meaningful.slice(0, 2000);
+    if (meaningful.length > 2000) {
+      logger.info(`Duplicate scan: capped to 2000 chunks (${meaningful.length} total). Sort by size for best coverage.`);
+    }
+
+    for (let i = 0; i < capped.length; i++) {
+      for (let j = i + 1; j < capped.length; j++) {
+        const a = capped[i];
+        const b = capped[j];
 
         // Skip same-file pairs with overlapping lines (same symbol split into parts)
         if (a.filePath === b.filePath) continue;

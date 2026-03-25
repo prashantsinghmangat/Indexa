@@ -53,6 +53,26 @@ export function hashContent(content: string): string {
 /** Read code from disk using byte offset + length */
 export function readCodeAtOffset(filePath: string, byteOffset: number, byteLength: number): string {
   try {
+    // Guard against corrupt metadata: cap at 1MB, reject negative values
+    const MAX_READ = 1024 * 1024;
+    if (byteLength <= 0 || byteOffset < 0 || byteLength > MAX_READ) {
+      logger.debug(`Invalid byte range for ${filePath}: offset=${byteOffset}, length=${byteLength}`);
+      return '';
+    }
+
+    // Verify file is large enough
+    const stat = fs.statSync(filePath);
+    if (byteOffset + byteLength > stat.size) {
+      // Clamp to actual file size instead of crashing
+      const safeLength = Math.max(0, stat.size - byteOffset);
+      if (safeLength <= 0) return '';
+      const fd = fs.openSync(filePath, 'r');
+      const buffer = Buffer.alloc(safeLength);
+      fs.readSync(fd, buffer, 0, safeLength, byteOffset);
+      fs.closeSync(fd);
+      return buffer.toString('utf-8');
+    }
+
     const fd = fs.openSync(filePath, 'r');
     const buffer = Buffer.alloc(byteLength);
     fs.readSync(fd, buffer, 0, byteLength, byteOffset);
