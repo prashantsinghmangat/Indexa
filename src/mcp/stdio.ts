@@ -455,7 +455,370 @@ server.tool(
 );
 
 // ============================================================
-// TOOL 10: indexa_security_scan — File-level deep security analysis
+// TOOL 10: indexa_dead_code — Find unreferenced symbols
+// ============================================================
+server.tool(
+  'indexa_dead_code',
+  'Find dead code: functions, methods, and classes that are never referenced by other symbols. Useful for cleanup and reducing bundle size.',
+  {
+    includeEntryPoints: z.boolean().default(false).describe('Include controllers/components/services (usually wired by frameworks)'),
+  },
+  async ({ includeEntryPoints }) => {
+    const dead = graph.findDeadCode({ includeEntryPoints });
+
+    if (dead.length === 0) {
+      return { content: [{ type: 'text' as const, text: 'No dead code found.' }] };
+    }
+
+    // Group by file
+    const byFile = new Map<string, typeof dead>();
+    for (const d of dead) {
+      const list = byFile.get(d.chunk.filePath) || [];
+      list.push(d);
+      byFile.set(d.chunk.filePath, list);
+    }
+
+    const lines: string[] = [`# Dead Code Report — ${dead.length} unreferenced symbols\n`];
+
+    for (const [filePath, items] of byFile) {
+      const shortFile = filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+      lines.push(`## ${shortFile}`);
+      for (const item of items) {
+        lines.push(`  - [${item.chunk.type}] ${item.chunk.name} (L${item.chunk.startLine}-${item.chunk.endLine}) — ${item.reason}`);
+      }
+      lines.push('');
+    }
+
+    lines.push(`\nTotal: ${dead.length} symbols across ${byFile.size} files.`);
+    lines.push('Tip: Verify before deleting — some may be used via dynamic imports, reflection, or external entry points.');
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 11: indexa_blast_radius — Impact analysis for a symbol
+// ============================================================
+server.tool(
+  'indexa_blast_radius',
+  'Estimate blast radius: what breaks if a symbol changes? Shows direct refs, transitive impact, and affected files.',
+  {
+    name: z.string().describe('Symbol name to analyze'),
+  },
+  async ({ name }) => {
+    const blast = graph.getBlastRadius(name);
+    const directRefs = graph.findReferences(name);
+
+    if (blast.directRefs === 0) {
+      return { content: [{ type: 'text' as const, text: `No references to "${name}" found. Safe to modify or remove.` }] };
+    }
+
+    const lines: string[] = [
+      `# Blast Radius: ${name}`,
+      '',
+      `Direct references: ${blast.directRefs}`,
+      `Files affected (transitive): ${blast.transitiveRefs}`,
+      '',
+      `## Direct References`,
+      ...directRefs.slice(0, 30).map(c =>
+        `  [${c.type}] ${c.name} — ${c.filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/')}:${c.startLine}`
+      ),
+      directRefs.length > 30 ? `  ... and ${directRefs.length - 30} more` : '',
+      '',
+      `## Affected Files`,
+      ...blast.files.slice(0, 20).map(f => `  ${f.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/')}`),
+      blast.files.length > 20 ? `  ... and ${blast.files.length - 20} more` : '',
+    ];
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 12: indexa_importers — Who imports from this file?
+// ============================================================
+server.tool(
+  'indexa_importers',
+  'Find all symbols that import from a given file. Answers "who depends on this file?"',
+  {
+    path: z.string().describe('File path (absolute or partial)'),
+  },
+  async ({ path: filePath }) => {
+    const importers = graph.findImporters(filePath);
+
+    if (importers.length === 0) {
+      return { content: [{ type: 'text' as const, text: `No symbols import from "${filePath}".` }] };
+    }
+
+    const byFile = new Map<string, typeof importers>();
+    for (const imp of importers) {
+      const list = byFile.get(imp.filePath) || [];
+      list.push(imp);
+      byFile.set(imp.filePath, list);
+    }
+
+    const lines: string[] = [
+      `# Importers of ${filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/')}`,
+      `${importers.length} symbols across ${byFile.size} files`,
+      '',
+    ];
+
+    for (const [file, chunks] of byFile) {
+      const shortFile = file.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+      lines.push(`## ${shortFile}`);
+      for (const c of chunks) {
+        lines.push(`  [${c.type}] ${c.name} (L${c.startLine})`);
+      }
+      lines.push('');
+    }
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 13: indexa_circular_deps — Circular dependency detection
+// ============================================================
+server.tool(
+  'indexa_circular_deps',
+  'Detect circular dependencies between files. Circular imports can cause runtime bugs, bundle issues, and make code hard to maintain.',
+  {},
+  async () => {
+    const cycles = graph.findCircularDependencies();
+
+    if (cycles.length === 0) {
+      return { content: [{ type: 'text' as const, text: 'No circular dependencies found.' }] };
+    }
+
+    const lines: string[] = [`# Circular Dependencies — ${cycles.length} cycles detected\n`];
+
+    for (let i = 0; i < cycles.length; i++) {
+      const cycle = cycles[i];
+      const shortPaths = cycle.cycle.map(f =>
+        f.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/')
+      );
+      lines.push(`## Cycle ${i + 1} (${cycle.files.length} files)`);
+      lines.push(`  ${shortPaths.join(' → ')}`);
+      lines.push('');
+    }
+
+    lines.push('Tip: Break cycles by extracting shared code into a separate module, or use dependency injection.');
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 14: indexa_unused_exports — Find exports nobody imports
+// ============================================================
+server.tool(
+  'indexa_unused_exports',
+  'Find exported symbols (types, constants, exports) that no other file imports. Helps reduce public API surface and dead exports.',
+  {},
+  async () => {
+    const unused = graph.findUnusedExports();
+
+    if (unused.length === 0) {
+      return { content: [{ type: 'text' as const, text: 'No unused exports found.' }] };
+    }
+
+    const byFile = new Map<string, typeof unused>();
+    for (const u of unused) {
+      const list = byFile.get(u.chunk.filePath) || [];
+      list.push(u);
+      byFile.set(u.chunk.filePath, list);
+    }
+
+    const lines: string[] = [`# Unused Exports — ${unused.length} symbols\n`];
+
+    for (const [filePath, items] of byFile) {
+      const shortFile = filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+      lines.push(`## ${shortFile}`);
+      for (const item of items) {
+        lines.push(`  - [${item.chunk.type}] ${item.exportedName} (L${item.chunk.startLine})`);
+      }
+      lines.push('');
+    }
+
+    lines.push('Tip: Unused exports may still be used by external consumers. Verify before removing.');
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 15: indexa_duplicates — Find near-duplicate code
+// ============================================================
+server.tool(
+  'indexa_duplicates',
+  'Find near-duplicate code across files using embedding similarity. Helps identify copy-paste patterns and refactoring opportunities.',
+  {
+    threshold: z.coerce.number().min(0.8).max(0.99).default(0.92).describe('Similarity threshold (0.8-0.99, default 0.92). Lower = more results.'),
+  },
+  async ({ threshold }) => {
+    const dupes = graph.findDuplicates(threshold);
+
+    if (dupes.length === 0) {
+      return { content: [{ type: 'text' as const, text: `No duplicates found above ${(threshold * 100).toFixed(0)}% similarity.` }] };
+    }
+
+    const lines: string[] = [`# Code Duplicates — ${dupes.length} pairs above ${(threshold * 100).toFixed(0)}% similarity\n`];
+
+    for (let i = 0; i < Math.min(dupes.length, 20); i++) {
+      const d = dupes[i];
+      const shortA = d.a.filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+      const shortB = d.b.filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+
+      lines.push(`## Pair ${i + 1} — ${(d.similarity * 100).toFixed(1)}% similar`);
+      lines.push(`  A: [${d.a.type}] ${d.a.name} — ${shortA}:${d.a.startLine}-${d.a.endLine}`);
+      lines.push(`  B: [${d.b.type}] ${d.b.name} — ${shortB}:${d.b.startLine}-${d.b.endLine}`);
+      lines.push('');
+    }
+
+    if (dupes.length > 20) {
+      lines.push(`... and ${dupes.length - 20} more pairs`);
+    }
+
+    lines.push('\nTip: Consider extracting duplicated logic into a shared utility function.');
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 16: indexa_impact_chain — Deep transitive impact analysis
+// ============================================================
+server.tool(
+  'indexa_impact_chain',
+  'Full transitive impact analysis: trace every symbol affected if a given symbol changes, across all depths. More thorough than blast_radius.',
+  {
+    name: z.string().describe('Symbol name to analyze'),
+    depth: z.coerce.number().min(1).max(10).default(5).describe('Max depth to trace (1-10, default 5)'),
+  },
+  async ({ name, depth }) => {
+    const impact = graph.getFullImpactChain(name, depth);
+
+    if (impact.totalAffected === 0) {
+      return { content: [{ type: 'text' as const, text: `No impact found for "${name}". Safe to modify.` }] };
+    }
+
+    const lines: string[] = [
+      `# Full Impact Chain: ${name}`,
+      '',
+      `Direct references: ${impact.directRefs}`,
+      `Total symbols affected: ${impact.totalAffected}`,
+      `Files affected: ${impact.files.length}`,
+      '',
+      '## Impact Chain (by depth)',
+    ];
+
+    // Group by depth
+    const byDepth = new Map<number, typeof impact.chain>();
+    for (const item of impact.chain) {
+      const list = byDepth.get(item.depth) || [];
+      list.push(item);
+      byDepth.set(item.depth, list);
+    }
+
+    for (const [d, items] of byDepth) {
+      lines.push(`\n### Depth ${d} (${items.length} symbols)`);
+      for (const item of items.slice(0, 15)) {
+        const shortFile = item.filePath.replace(/.*[/\\](src|public)[/\\]/, '$1/').replace(/\\/g, '/');
+        lines.push(`  [${item.type}] ${item.name} — ${shortFile}`);
+      }
+      if (items.length > 15) lines.push(`  ... +${items.length - 15} more`);
+    }
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 17: indexa_review_pr — Context-aware PR review
+// ============================================================
+server.tool(
+  'indexa_review_pr',
+  'Get context for reviewing the current PR/recent changes. Reads git diff, finds changed symbols, builds context bundles for each. Use this before doing a code review.',
+  {
+    tokenBudget: z.coerce.number().min(500).default(4000).describe('Token budget for context'),
+  },
+  async ({ tokenBudget }) => {
+    // Get changed files from git
+    let gitOutput: string;
+    try {
+      const { execSync } = require('child_process');
+      gitOutput = execSync('git diff --name-only HEAD~1', {
+        cwd: config.projectRoot,
+        encoding: 'utf-8',
+      });
+    } catch {
+      return { content: [{ type: 'text' as const, text: 'Could not read git diff. Are you in a git repository with commits?' }] };
+    }
+
+    const changedFiles = gitOutput.split('\n').filter(f => f.trim()).filter(f =>
+      f.endsWith('.ts') || f.endsWith('.tsx') || f.endsWith('.js') || f.endsWith('.jsx')
+    );
+
+    if (changedFiles.length === 0) {
+      return { content: [{ type: 'text' as const, text: 'No changed TS/JS files in the latest commit.' }] };
+    }
+
+    const lines: string[] = [
+      `# PR Review Context — ${changedFiles.length} changed files`,
+      '',
+    ];
+
+    // Find all indexed symbols in changed files
+    const changedSymbols: string[] = [];
+    for (const file of changedFiles) {
+      const absPath = require('path').resolve(config.projectRoot, file);
+      const chunks = vectorDB.getByFile(absPath);
+      if (chunks.length > 0) {
+        lines.push(`## ${file} (${chunks.length} symbols)`);
+        for (const c of chunks.slice(0, 5)) {
+          lines.push(`  [${c.type}] ${c.name} (L${c.startLine}-${c.endLine}) — ${c.summary}`);
+          changedSymbols.push(c.name);
+        }
+        if (chunks.length > 5) lines.push(`  ... +${chunks.length - 5} more`);
+
+        // Show blast radius for each changed symbol
+        for (const c of chunks.slice(0, 3)) {
+          const blast = graph.getBlastRadius(c.name);
+          if (blast.directRefs > 0) {
+            lines.push(`  Impact: ${c.name} → ${blast.directRefs} direct refs, ${blast.transitiveRefs} files affected`);
+          }
+        }
+        lines.push('');
+      } else {
+        lines.push(`## ${file} (not indexed)`);
+        lines.push('');
+      }
+    }
+
+    // Build context bundle for the changed symbols
+    if (changedSymbols.length > 0) {
+      const query = changedSymbols.slice(0, 5).join(' ');
+      const results = await search.directSearch(query, 15);
+      const stitched = await explainEngine.stitch(results, tokenBudget);
+
+      if (stitched.connections.length > 0) {
+        lines.push(`## Key Connections`);
+        for (const conn of stitched.connections) {
+          lines.push(`  ${conn.from} —[${conn.type}]→ ${conn.to}`);
+        }
+        lines.push('');
+      }
+    }
+
+    lines.push('---');
+    lines.push('Review these changes for: bugs, security issues, performance impact, and breaking changes to dependents.');
+
+    return { content: [{ type: 'text' as const, text: lines.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 18: indexa_security_scan — File-level deep security analysis
 // Returns FULL code for security-relevant files, grouped by domain,
 // so the LLM can do deep analysis (like Claude's Agent:Scan).
 // ============================================================

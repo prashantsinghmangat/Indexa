@@ -203,6 +203,111 @@ export class IndexController {
     }
   };
 
+  /** GET /circular-deps — detect circular dependencies */
+  getCircularDeps = (_req: Request, res: Response): void => {
+    try {
+      const cycles = this.graph.findCircularDependencies();
+      res.json({ total: cycles.length, cycles });
+    } catch (err) {
+      logger.error(`Circular deps scan failed: ${err}`);
+      res.status(500).json({ error: 'Circular deps scan failed' });
+    }
+  };
+
+  /** GET /unused-exports — find exports nobody imports */
+  getUnusedExports = (_req: Request, res: Response): void => {
+    try {
+      const unused = this.graph.findUnusedExports();
+      const cleaned = unused.map(u => ({
+        name: u.exportedName,
+        type: u.chunk.type,
+        filePath: u.chunk.filePath,
+        startLine: u.chunk.startLine,
+      }));
+      res.json({ total: unused.length, unusedExports: cleaned });
+    } catch (err) {
+      logger.error(`Unused exports scan failed: ${err}`);
+      res.status(500).json({ error: 'Unused exports scan failed' });
+    }
+  };
+
+  /** GET /duplicates?threshold= — find near-duplicate code */
+  getDuplicates = (req: Request, res: Response): void => {
+    try {
+      const threshold = parseFloat(req.query.threshold as string) || 0.92;
+      const dupes = this.graph.findDuplicates(threshold);
+      const cleaned = dupes.map(d => ({
+        similarity: Math.round(d.similarity * 1000) / 1000,
+        a: { name: d.a.name, type: d.a.type, filePath: d.a.filePath, startLine: d.a.startLine, endLine: d.a.endLine },
+        b: { name: d.b.name, type: d.b.type, filePath: d.b.filePath, startLine: d.b.startLine, endLine: d.b.endLine },
+      }));
+      res.json({ total: dupes.length, threshold, duplicates: cleaned });
+    } catch (err) {
+      logger.error(`Duplicates scan failed: ${err}`);
+      res.status(500).json({ error: 'Duplicates scan failed' });
+    }
+  };
+
+  /** GET /impact-chain?name=&depth= — full transitive impact analysis */
+  getImpactChain = (req: Request, res: Response): void => {
+    try {
+      const name = req.query.name as string;
+      if (!name) {
+        res.status(400).json({ error: 'Missing "name" query parameter' });
+        return;
+      }
+      const depth = parseInt(req.query.depth as string) || 5;
+      const impact = this.graph.getFullImpactChain(name, depth);
+      res.json({ symbolName: name, depth, ...impact });
+    } catch (err) {
+      logger.error(`Impact chain failed: ${err}`);
+      res.status(500).json({ error: 'Impact chain failed' });
+    }
+  };
+
+  /** GET /dead-code — find unreferenced symbols */
+  getDeadCode = (req: Request, res: Response): void => {
+    try {
+      const includeEntryPoints = req.query.includeEntryPoints === 'true';
+      const dead = this.graph.findDeadCode({ includeEntryPoints });
+      const cleaned = dead.map(d => ({
+        name: d.chunk.name,
+        type: d.chunk.type,
+        filePath: d.chunk.filePath,
+        startLine: d.chunk.startLine,
+        endLine: d.chunk.endLine,
+        reason: d.reason,
+      }));
+      res.json({ total: dead.length, deadCode: cleaned });
+    } catch (err) {
+      logger.error(`Dead code scan failed: ${err}`);
+      res.status(500).json({ error: 'Dead code scan failed' });
+    }
+  };
+
+  /** GET /importers?path= — find all symbols that import from a file */
+  getImporters = (req: Request, res: Response): void => {
+    try {
+      const filePath = req.query.path as string;
+      if (!filePath) {
+        res.status(400).json({ error: 'Missing "path" query parameter' });
+        return;
+      }
+      const importers = this.graph.findImporters(filePath);
+      const cleaned = importers.map(c => ({
+        id: c.id,
+        name: c.name,
+        type: c.type,
+        filePath: c.filePath,
+        startLine: c.startLine,
+      }));
+      res.json({ filePath, importers: cleaned, total: importers.length });
+    } catch (err) {
+      logger.error(`Get importers failed: ${err}`);
+      res.status(500).json({ error: 'Failed to get importers' });
+    }
+  };
+
   /** GET /stats — get index statistics */
   getStats = (_req: Request, res: Response): void => {
     res.json({

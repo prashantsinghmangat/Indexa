@@ -1,6 +1,6 @@
 {
   "name": "indexa-mcp",
-  "version": "3.2.1",
+  "version": "3.4.0",
   "description": "Local-first AI code intelligence. Indexes your codebase, returns minimal context bundles for LLMs. 50-70% token reduction. MCP + VS Code + CLI.",
   "main": "dist/src/server/index.js",
   "bin": {

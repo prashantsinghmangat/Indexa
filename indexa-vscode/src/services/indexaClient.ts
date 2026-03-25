@@ -254,6 +254,15 @@ export async function referencesRaw(symbolName: string): Promise<any> {
   return JSON.parse(raw);
 }
 
+/** Trigger re-index for a single file via the API update endpoint */
+export async function reindexFile(filePath: string): Promise<void> {
+  try {
+    await request('POST', '/api/update', {});
+  } catch {
+    // Silently fail — auto-index is best-effort
+  }
+}
+
 /** Health check */
 export async function health(): Promise<string> {
   try {

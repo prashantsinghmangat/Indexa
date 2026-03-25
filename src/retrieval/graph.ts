@@ -1,6 +1,6 @@
 import { IndexedChunk, DepGraphNode, ContextBundle, RetrievedSymbol, SearchResult } from '../types';
 import { VectorDB } from '../storage/vector-db';
-import { readCodeAtOffset, estimateTokens, logger, packByTokenBudget } from '../utils';
+import { readCodeAtOffset, estimateTokens, logger, packByTokenBudget, cosineSimilarity } from '../utils';
 
 /**
  * Dependency graph and relationship analysis.
@@ -316,6 +316,253 @@ export class GraphAnalysis {
       return code.substring(0, arrowIdx + 2).trim();
     }
     return null;
+  }
+
+  /** Detect circular dependencies between files via import edges.
+   *  Uses DFS cycle detection on the file-level import graph. */
+  findCircularDependencies(): Array<{ cycle: string[]; files: string[] }> {
+    const allChunks = this.vectorDB.getAll();
+
+    // Build file-level import graph: file → set of files it imports from
+    const fileImports = new Map<string, Set<string>>();
+    const allFiles = new Set<string>();
+
+    for (const chunk of allChunks) {
+      const file = chunk.filePath;
+      allFiles.add(file);
+      if (!fileImports.has(file)) fileImports.set(file, new Set());
+
+      for (const imp of chunk.imports) {
+        // Resolve import source to an actual indexed file
+        const resolved = this.resolveImportToFile(imp.source, file, allChunks);
+        if (resolved && resolved !== file) {
+          fileImports.get(file)!.add(resolved);
+        }
+      }
+    }
+
+    // DFS cycle detection
+    const cycles: Array<{ cycle: string[]; files: string[] }> = [];
+    const visited = new Set<string>();
+    const inStack = new Set<string>();
+    const stack: string[] = [];
+    const seen = new Set<string>(); // dedup cycles
+
+    const dfs = (node: string) => {
+      if (inStack.has(node)) {
+        // Found a cycle — extract it
+        const cycleStart = stack.indexOf(node);
+        const cyclePath = stack.slice(cycleStart);
+        const key = [...cyclePath].sort().join('|');
+        if (!seen.has(key)) {
+          seen.add(key);
+          cycles.push({
+            cycle: [...cyclePath, node], // close the cycle
+            files: cyclePath,
+          });
+        }
+        return;
+      }
+      if (visited.has(node)) return;
+
+      visited.add(node);
+      inStack.add(node);
+      stack.push(node);
+
+      const deps = fileImports.get(node);
+      if (deps) {
+        for (const dep of deps) {
+          dfs(dep);
+        }
+      }
+
+      stack.pop();
+      inStack.delete(node);
+    };
+
+    for (const file of allFiles) {
+      if (!visited.has(file)) dfs(file);
+    }
+
+    return cycles;
+  }
+
+  /** Find exported symbols that are never imported by any other file */
+  findUnusedExports(): Array<{ chunk: IndexedChunk; exportedName: string }> {
+    const allChunks = this.vectorDB.getAll();
+    const unused: Array<{ chunk: IndexedChunk; exportedName: string }> = [];
+
+    // Build set of all imported symbol names across the codebase
+    const importedNames = new Set<string>();
+    for (const chunk of allChunks) {
+      for (const imp of chunk.imports) {
+        importedNames.add(imp.name.toLowerCase());
+      }
+      // Also check dependencies (covers non-import usages)
+      for (const dep of chunk.dependencies) {
+        importedNames.add(dep.toLowerCase());
+      }
+    }
+
+    // Find exports that nobody imports
+    for (const chunk of allChunks) {
+      if (chunk.type !== 'export' && chunk.type !== 'constant' && chunk.type !== 'type') continue;
+
+      const nameLC = chunk.name.toLowerCase();
+      // Check if any other chunk imports or depends on this name
+      const isUsed = importedNames.has(nameLC) &&
+        allChunks.some(c => c.id !== chunk.id && (
+          c.imports.some(imp => imp.name.toLowerCase() === nameLC) ||
+          c.dependencies.some(dep => dep.toLowerCase() === nameLC)
+        ));
+
+      if (!isUsed) {
+        unused.push({ chunk, exportedName: chunk.name });
+      }
+    }
+
+    return unused;
+  }
+
+  /** Find duplicate/near-duplicate code using embedding cosine similarity.
+   *  Compares all chunk pairs and returns those above the similarity threshold. */
+  findDuplicates(threshold: number = 0.92): Array<{
+    a: IndexedChunk;
+    b: IndexedChunk;
+    similarity: number;
+  }> {
+    const allChunks = this.vectorDB.getAll();
+    const duplicates: Array<{ a: IndexedChunk; b: IndexedChunk; similarity: number }> = [];
+    const seen = new Set<string>();
+
+    // Skip very small chunks (< 4 lines) — they'll match trivially
+    const meaningful = allChunks.filter(c => (c.endLine - c.startLine) >= 4);
+
+    for (let i = 0; i < meaningful.length; i++) {
+      for (let j = i + 1; j < meaningful.length; j++) {
+        const a = meaningful[i];
+        const b = meaningful[j];
+
+        // Skip same-file pairs with overlapping lines (same symbol split into parts)
+        if (a.filePath === b.filePath) continue;
+
+        // Skip if same name (expected: overloads, test doubles)
+        if (a.name === b.name) continue;
+
+        const sim = cosineSimilarity(a.embedding, b.embedding);
+        if (sim >= threshold) {
+          const key = [a.id, b.id].sort().join('|');
+          if (!seen.has(key)) {
+            seen.add(key);
+            duplicates.push({ a, b, similarity: sim });
+          }
+        }
+      }
+    }
+
+    duplicates.sort((x, y) => y.similarity - x.similarity);
+    return duplicates.slice(0, 50); // Cap at 50 to avoid noise
+  }
+
+  /** Deep impact chain: walk transitive references to configurable depth.
+   *  Returns all symbols and files affected if the given symbol changes. */
+  getFullImpactChain(symbolName: string, maxDepth: number = 5): {
+    directRefs: number;
+    totalAffected: number;
+    files: string[];
+    chain: Array<{ depth: number; name: string; type: string; filePath: string }>;
+  } {
+    const visited = new Set<string>();
+    const affectedFiles = new Set<string>();
+    const chain: Array<{ depth: number; name: string; type: string; filePath: string }> = [];
+
+    const walk = (name: string, depth: number) => {
+      if (depth > maxDepth || visited.has(name)) return;
+      visited.add(name);
+
+      const refs = this.findReferences(name);
+      for (const ref of refs) {
+        if (ref.name === name) continue; // skip self
+        affectedFiles.add(ref.filePath);
+
+        if (!visited.has(ref.name)) {
+          chain.push({
+            depth,
+            name: ref.name,
+            type: ref.type,
+            filePath: ref.filePath,
+          });
+          walk(ref.name, depth + 1);
+        }
+      }
+    };
+
+    walk(symbolName, 1);
+
+    const directRefs = this.findReferences(symbolName).filter(r => r.name !== symbolName);
+
+    return {
+      directRefs: directRefs.length,
+      totalAffected: chain.length,
+      files: Array.from(affectedFiles),
+      chain,
+    };
+  }
+
+  /** Resolve an import source string to an actual indexed file path */
+  private resolveImportToFile(source: string, fromFile: string, allChunks: IndexedChunk[]): string | null {
+    // Skip node_modules/external packages
+    if (!source.startsWith('.') && !source.startsWith('/')) return null;
+
+    const fromDir = fromFile.replace(/\\/g, '/').replace(/\/[^/]+$/, '');
+    // Normalize the source to a potential path fragment
+    const cleaned = source.replace(/^\.\//, '').replace(/^\.\.\//, '../');
+
+    // Try to find a matching indexed file
+    const filePaths = new Set(allChunks.map(c => c.filePath));
+    for (const fp of filePaths) {
+      const normalized = fp.replace(/\\/g, '/');
+      if (normalized.includes(cleaned.replace(/\.[^.]+$/, '')) ||
+          normalized.endsWith(cleaned) ||
+          normalized.endsWith(cleaned + '.ts') ||
+          normalized.endsWith(cleaned + '.tsx') ||
+          normalized.endsWith(cleaned + '.js')) {
+        return fp;
+      }
+    }
+    return null;
+  }
+
+  /** Find dead code: symbols with zero inbound references from other symbols.
+   *  Skips entry-point types (controllers, modules, exports) that are expected to have no callers. */
+  findDeadCode(options?: { includeEntryPoints?: boolean }): Array<{ chunk: IndexedChunk; reason: string }> {
+    const allChunks = this.vectorDB.getAll();
+    const dead: Array<{ chunk: IndexedChunk; reason: string }> = [];
+
+    // Entry-point types are typically wired by frameworks, not called directly
+    const entryTypes = new Set<string>(['controller', 'module', 'component', 'service']);
+
+    for (const chunk of allChunks) {
+      // Skip entry points unless explicitly requested
+      if (!options?.includeEntryPoints && entryTypes.has(chunk.type)) continue;
+
+      // Skip exports/constants — often config or re-exports
+      if (chunk.type === 'export' || chunk.type === 'constant' || chunk.type === 'type') continue;
+
+      const refs = this.findReferences(chunk.name);
+      // Filter out self-references
+      const externalRefs = refs.filter(r => r.id !== chunk.id);
+
+      if (externalRefs.length === 0) {
+        const reason = chunk.type === 'function' ? 'Unused function' :
+                       chunk.type === 'method' ? 'Unused method' :
+                       chunk.type === 'class' ? 'Unused class' :
+                       'No references found';
+        dead.push({ chunk, reason });
+      }
+    }
+
+    return dead;
   }
 
   /** Estimate blast radius: how many symbols are affected if this symbol changes */

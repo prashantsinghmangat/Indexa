@@ -7,7 +7,7 @@ import {
   reindexCommand,
   healthCommand,
 } from './commands/askIndexa';
-import { health } from './services/indexaClient';
+import { health, reindexFile } from './services/indexaClient';
 import { ensureServer, stopServer } from './services/serverManager';
 import { IndexaSidebarProvider } from './ui/sidebarProvider';
 import { copyForAI, openForCopilot } from './services/aiBridge';
@@ -138,6 +138,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   } else {
     statusBarItem.text = '$(warning) Indexa: Offline';
     statusBarItem.tooltip = 'Indexa server not running. Click to retry.';
+  }
+
+  // ─── Auto-index on Save ──────────────────────────────────────────────
+  const autoIndex = vscode.workspace.getConfiguration('indexa').get('autoIndexOnSave', true);
+  if (autoIndex) {
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    const watcher = vscode.workspace.onDidSaveTextDocument((doc) => {
+      const ext = doc.fileName.split('.').pop()?.toLowerCase();
+      if (!ext || !['ts', 'tsx', 'js', 'jsx'].includes(ext)) return;
+      // Skip node_modules and dist
+      if (doc.fileName.includes('node_modules') || doc.fileName.includes('/dist/')) return;
+
+      // Debounce: wait 2s after last save before triggering re-index
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        reindexFile(doc.fileName);
+      }, 2000);
+    });
+    context.subscriptions.push(watcher);
   }
 
   // Periodic status bar update

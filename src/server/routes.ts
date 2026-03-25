@@ -38,6 +38,12 @@ export function createRouter(
   // Graph analysis
   router.get('/references', indexController.getReferences);
   router.get('/blast-radius', indexController.getBlastRadius);
+  router.get('/dead-code', indexController.getDeadCode);
+  router.get('/importers', indexController.getImporters);
+  router.get('/circular-deps', indexController.getCircularDeps);
+  router.get('/unused-exports', indexController.getUnusedExports);
+  router.get('/duplicates', indexController.getDuplicates);
+  router.get('/impact-chain', indexController.getImpactChain);
 
   // Stats and health
   router.get('/stats', indexController.getStats);

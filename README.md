@@ -237,7 +237,7 @@ AI Query  → Intent Router → Hybrid Search → Bundle → Response
 
 ---
 
-## 9 MCP Tools for Claude Code
+## 18 MCP Tools for Claude Code
 
 | Tool | What it does |
 |------|-------------|
@@ -250,6 +250,15 @@ AI Query  → Intent Router → Hybrid Search → Bundle → Response
 | `indexa_references` | Find usages + blast radius |
 | `indexa_index` | Index or re-index a directory |
 | `indexa_stats` | Index health and stats |
+| `indexa_dead_code` | Find unreferenced functions, methods, classes |
+| `indexa_blast_radius` | Impact analysis — what breaks if you change a symbol |
+| `indexa_importers` | Find all symbols that import from a file |
+| **`indexa_circular_deps`** | **NEW.** Detect circular dependencies between files |
+| **`indexa_unused_exports`** | **NEW.** Find exports nobody imports |
+| **`indexa_duplicates`** | **NEW.** Find near-duplicate code via embedding similarity |
+| **`indexa_impact_chain`** | **NEW.** Full transitive impact analysis (deeper than blast radius) |
+| **`indexa_review_pr`** | **NEW.** Context-aware PR review — changed files + impact + connections |
+| `indexa_security_scan` | Deep security scan grouped by OWASP domains |
 
 MCP is auto-configured by `indexa-mcp setup`. No manual `.mcp.json` editing.
 
@@ -267,6 +276,19 @@ indexa-mcp search "auth middleware" # Hybrid search
 indexa-mcp bundle "payment flow"    # Context bundle (best for LLMs)
 indexa-mcp flow "handleLogin"       # Execution flow
 indexa-mcp explain "pricing system" # Code explanation
+
+# Analysis & Intelligence
+indexa-mcp dead-code                # Find unreferenced symbols
+indexa-mcp blast-radius UserService # What breaks if you change it
+indexa-mcp impact-chain UserService # Full transitive impact chain
+indexa-mcp circular-deps            # Detect circular dependencies
+indexa-mcp unused-exports           # Find exports nobody imports
+indexa-mcp duplicates               # Find near-duplicate code
+indexa-mcp duplicates -t 0.85       # Lower threshold = more results
+indexa-mcp export "auth flow"       # Export LLM-ready context to stdout
+indexa-mcp export "auth" -o ctx.md  # Export to file
+indexa-mcp export "auth" -f json    # Export as JSON
+indexa-mcp watch                    # Live re-index on file changes
 
 # Index Management
 indexa-mcp index ./src              # Full index (skips unchanged)
@@ -367,6 +389,13 @@ Start with `indexa-mcp serve` (runs on port 3000):
 | POST | `/api/search` | Smart search |
 | GET | `/api/symbol?name=` | Symbol lookup |
 | GET | `/api/references?name=` | References + blast radius |
+| GET | `/api/blast-radius?name=` | Impact analysis for a symbol |
+| GET | `/api/impact-chain?name=&depth=` | Full transitive impact chain |
+| GET | `/api/dead-code` | Find unreferenced symbols |
+| GET | `/api/importers?path=` | Who imports from this file |
+| GET | `/api/circular-deps` | Detect circular dependencies |
+| GET | `/api/unused-exports` | Find exports nobody imports |
+| GET | `/api/duplicates?threshold=` | Find near-duplicate code |
 | GET | `/api/file?path=` | File chunks |
 | POST | `/api/update` | Incremental re-index |
 | GET | `/api/stats` | Index statistics |
