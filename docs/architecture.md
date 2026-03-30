@@ -1,4 +1,4 @@
-# Indexa v3.1 — Architecture
+# Indexa v3.4 — Architecture
 
 ## Overview
 
@@ -7,7 +7,7 @@ Indexa is a code intelligence system that provides semantic retrieval, execution
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │                        Consumers                               │
-│  Claude Code (MCP, 9 tools)  │  VS Code Extension  │  REST API  │  CLI
+│  Claude Code (MCP, 19 tools) │  VS Code Extension  │  REST API  │  CLI  │  SDK
 └──────────┬───────────────────┴──────────┬───────────┴──────┬─────┴──────┐
            │                              │                  │            │
            ▼                              ▼                  ▼            ▼
@@ -36,8 +36,8 @@ Indexa is a code intelligence system that provides semantic retrieval, execution
 │  │   Indexer     │  │  Retrieval    │  │    Storage          │ │
 │  │  Parser      │  │  Semantic     │  │  VectorDB           │ │
 │  │  Chunker     │  │  BM25 Keyword │  │  MetadataDB         │ │
-│  │  Embedder    │  │  Hybrid       │  │  (atomic writes)    │ │
-│  │  (gte-small) │  │  Graph        │  │                    │ │
+│  │  Embedder    │  │  Hybrid       │  │  ReverseRefIndex    │ │
+│  │  (gte-small) │  │  Graph        │  │  (atomic writes)    │ │
 │  │  Updater     │  │               │  │                    │ │
 │  └──────────────┘  └───────────────┘  └────────────────────┘ │
 │                                                                │
@@ -89,7 +89,7 @@ LRU cache for expensive operations:
 
 ## Embeddings
 
-Indexa v3.1 uses local ML embeddings via **Transformers.js** with the **gte-small** model:
+Indexa uses local ML embeddings via **Transformers.js** with the **gte-small** model:
 
 - **Dimensions:** 384
 - **Model:** Supabase/gte-small (downloaded and cached locally on first run)
@@ -125,7 +125,7 @@ The query router auto-detects query type and routes accordingly:
 | Short queries (1-2 words) | BM25 keyword search | `vendor`, `auth service` |
 | Natural language | Hybrid search | `how does vendor pricing work` |
 
-## MCP Tools (9)
+## MCP Tools (19)
 
 | # | Tool | Category | Description |
 |---|------|----------|-------------|
@@ -138,8 +138,18 @@ The query router auto-detects query type and routes accordingly:
 | 7 | `indexa_references` | Analysis | Find usages + blast radius |
 | 8 | `indexa_index` | Management | Index a directory |
 | 9 | `indexa_stats` | Management | Index stats + cache status |
+| 10 | `indexa_dead_code` | Analysis | Find unreferenced functions/methods/classes |
+| 11 | `indexa_blast_radius` | Analysis | Dedicated impact analysis |
+| 12 | `indexa_importers` | Analysis | Who imports from a file |
+| 13 | `indexa_circular_deps` | Analysis | Circular dependency detection |
+| 14 | `indexa_unused_exports` | Analysis | Find exports nobody imports |
+| 15 | `indexa_duplicates` | Analysis | Near-duplicate code via embedding similarity |
+| 16 | `indexa_impact_chain` | Analysis | Full transitive impact analysis |
+| 17 | `indexa_review_pr` | Intelligence | Context-aware PR review |
+| 18 | `indexa_security_scan` | Analysis | OWASP-grouped security scan |
+| 19 | `indexa_code_grep` | Retrieval | Regex pattern search across indexed files |
 
-## REST API Endpoints (12)
+## REST API Endpoints (22)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -150,11 +160,18 @@ The query router auto-detects query type and routes accordingly:
 | GET | `/api/file?path=` | File chunks |
 | GET | `/api/symbol?name=` | Symbol lookup |
 | GET | `/api/references?name=` | References + blast radius |
-| GET | `/api/blast-radius?name=` | Change impact analysis |
+| GET | `/api/blast-radius?name=` | Dedicated impact analysis |
 | GET | `/api/stats` | Index statistics |
 | GET | `/api/health` | Health check |
 | POST | `/api/update` | Incremental re-index |
 | GET | `/api/outline?path=` | File symbol outline |
+| GET | `/api/dead-code` | Find unreferenced symbols |
+| GET | `/api/impact-chain?name=&depth=` | Full transitive impact analysis |
+| GET | `/api/circular-deps` | Circular dependency detection |
+| GET | `/api/unused-exports` | Find dead exports |
+| GET | `/api/duplicates?threshold=` | Near-duplicate code detection |
+| GET | `/api/importers?path=` | Who imports from a file |
+| GET | `/api/grep?pattern=&filePattern=` | Regex search across source files |
 
 ## File Map
 
@@ -178,15 +195,48 @@ indexa/
 │   │   └── updater.ts        # Full + incremental indexing
 │   ├── storage/
 │   │   ├── vector-db.ts      # Atomic JSON, no inline code
-│   │   └── metadata-db.ts    # Atomic JSON, file hashes
-│   ├── server/               # Express REST API (12 endpoints)
-│   ├── mcp/stdio.ts          # MCP server (9 tools)
+│   │   └── metadata-db.ts    # Atomic JSON, file hashes, reverse reference index
+│   ├── sdk/
+│   │   └── index.ts          # Programmatic SDK for embedding Indexa in other tools
+│   ├── server/               # Express REST API (22 endpoints)
+│   ├── mcp/stdio.ts          # MCP server (19 tools, with instructions field)
 │   ├── types/index.ts        # All interfaces
 │   └── utils/index.ts        # BM25, byte-offset, query routing, summaries
-├── cli/                      # Commander CLI (8 commands)
-├── indexa-vscode/            # VS Code extension (Ask Indexa, Explain, Flow, etc.)
+├── cli/                      # Commander CLI (22 commands)
+├── indexa-vscode/            # VS Code extension v0.4.0 (sidebar, inline AI, diagnostics)
+│   └── src/
+│       ├── commands/
+│       │   └── inlineAI.ts   # Explain This, Fix This, Refactor This, etc.
+│       ├── services/
+│       │   ├── diagnosticWatcher.ts  # Lightbulb "Fix with Indexa" on errors
+│       │   └── llmProvider.ts        # LLM integration for inline AI
+│       └── extension.ts      # Extension entry point
+├── tests/                    # 23 integration tests
 ├── docs/                     # Documentation (8 guides)
 ├── sample-code/              # Test data
 ├── config/                   # indexa.config.json
 └── data/                     # Generated index
 ```
+
+## SDK (`src/sdk/index.ts`)
+
+Programmatic API for embedding Indexa in other tools, scripts, or pipelines. Import the SDK to use Indexa without going through CLI, REST, or MCP:
+
+```typescript
+import { Indexa } from 'indexa-mcp/sdk';
+```
+
+## Reverse Reference Index
+
+The storage layer maintains a reverse reference index for O(1) lookups of "who depends on X". Instead of scanning all chunks to find dependents, the reverse index maps each symbol to its importers/callers. This powers `blast-radius`, `impact-chain`, and `importers` with constant-time lookups.
+
+## Reliability Features
+
+| Feature | Description |
+|---------|-------------|
+| Binary file detection | Skips non-text files during indexing |
+| Embedding model fallback | Falls back to hash-based 128-dim embeddings if ML model fails to load |
+| Buffer overflow protection | 1 MB cap on file reads to prevent memory issues |
+| Corrupt index recovery | Auto-backup before writes; restores from `.bak` file on corruption |
+| Empty index guards | All MCP tools return helpful errors instead of crashing on empty index |
+| MCP server error recovery | Uncaught exception handlers prevent server crashes |

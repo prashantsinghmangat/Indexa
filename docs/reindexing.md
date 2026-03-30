@@ -1,6 +1,6 @@
 # Indexa — Re-indexing Guide
 
-How to keep the index fresh after code changes.
+How to keep the index fresh after code changes. 7 methods available — from manual full re-index to fully automatic.
 
 ## Methods
 
@@ -82,6 +82,48 @@ Best for: re-indexing from within the editor.
 Use the **Reindex** command in the VS Code extension (`Ctrl+Shift+P` → "Indexa: Reindex"). This triggers a full re-index of the current workspace.
 
 If you don't have the extension yet, install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence) or download `.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases).
+
+---
+
+### Method 6: Watch Mode (CLI)
+
+Best for: continuous development, keeping the index live during coding sessions.
+
+```bash
+npx indexa-mcp watch
+npx indexa-mcp watch "D:\path\to\project"
+```
+
+**How it works:**
+1. Watches the project directory for file changes (create, modify, delete)
+2. Debounces rapid changes (waits for a pause before re-indexing)
+3. Handles deletions — removes chunks for deleted files
+4. Re-indexes only the changed files
+5. Outputs status updates as files are processed
+
+**When to use:**
+- During active development when you want the index always up to date
+- When you don't want to manually re-index after each change
+- Long coding sessions where you want instant search results
+
+Press `Ctrl+C` to stop watching.
+
+---
+
+### Method 7: Auto-index on Save (VS Code)
+
+Best for: VS Code users who want zero-friction indexing.
+
+The Indexa VS Code extension (v0.4.0+) automatically re-indexes files when you save them. No configuration needed — just install the extension and save files as usual.
+
+**How it works:**
+1. Extension listens for the VS Code `onDidSaveTextDocument` event
+2. When a file is saved, it sends the file to the Indexa server for re-indexing
+3. Only the saved file is re-indexed — not the entire project
+
+**When to use:**
+- Always — this is automatic and has no performance impact
+- Works alongside all other methods (you can still run full re-index when needed)
 
 ---
 

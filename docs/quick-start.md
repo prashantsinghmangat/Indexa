@@ -67,7 +67,7 @@ npx indexa-mcp doctor
 
 ## 4. Use with Claude Code
 
-Restart Claude Code after setup. 9 tools are auto-available. Just ask:
+Restart Claude Code after setup. 19 tools are auto-available. Just ask:
 
 ```
 "explain the authentication flow"
@@ -84,6 +84,15 @@ npx indexa-mcp search "vendor pricing"               # Hybrid search
 npx indexa-mcp bundle "authentication flow"          # Context bundle (best for LLMs)
 npx indexa-mcp flow "getVendorRates"                 # Execution flow trace
 npx indexa-mcp explain "vendor pricing system"       # Code explanation
+npx indexa-mcp dead-code                             # Find unreferenced symbols
+npx indexa-mcp blast-radius "VendorService"          # What breaks if you change it
+npx indexa-mcp impact-chain "pricingService"         # Full transitive impact
+npx indexa-mcp circular-deps                         # Detect import cycles
+npx indexa-mcp unused-exports                        # Find dead exports
+npx indexa-mcp duplicates -t 0.9                     # Near-duplicate code
+npx indexa-mcp export "auth flow" -o ctx.md -f md    # Export LLM-ready context
+npx indexa-mcp grep "TODO|FIXME" -f "*.ts"           # Regex search
+npx indexa-mcp watch                                 # Live re-index on changes
 ```
 
 **Query intent classification** auto-detects what you need:
@@ -94,30 +103,41 @@ npx indexa-mcp explain "vendor pricing system"       # Code explanation
 
 ## 6. Use with VS Code (Optional)
 
-Install the VS Code extension for a sidebar UI with search, flow tracing, and click-to-navigate:
+Install the VS Code extension (v0.4.0) for a sidebar UI with search, flow tracing, inline AI commands, and click-to-navigate:
 
 1. **From Marketplace (recommended):** Search "Indexa Code Intelligence" in VS Code Extensions, or visit [Indexa on Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
-2. **Or from GitHub:** Download `.vsix` from [Releases](https://github.com/prashantsinghmangat/Indexa/releases) → `code --install-extension indexa-code-intelligence-0.2.0.vsix`
+2. **Or from GitHub:** Download `.vsix` from [Releases](https://github.com/prashantsinghmangat/Indexa/releases) → `code --install-extension indexa-code-intelligence-0.4.0.vsix`
 3. The extension auto-starts the Indexa server — no manual terminal needed.
 4. Use `Ctrl+Shift+I` to open the Indexa sidebar and start querying.
 
 | Command | Shortcut | Description |
 |---------|----------|-------------|
 | **Ask Indexa** | `Ctrl+Shift+I` | Query from the editor |
-| **Explain This** | Right-click | Explain selected code |
+| **Explain This** | `Ctrl+Shift+E` | Explain selected code using indexed context |
+| **Fix This** | `Ctrl+Shift+F` | Fix selected code using indexed context |
+| **What Calls This** | Right-click | Find callers of the selected symbol |
+| **Refactor This** | Right-click | Suggest refactoring using indexed context |
+| **Generate Tests** | Right-click | Generate tests for selected code |
 | **Show Flow** | Right-click | Trace execution flow |
 | **Find References** | Right-click | Find symbol usages |
 | **Reindex** | Command palette | Re-index workspace |
 | **Health Check** | Command palette | Verify server status |
+
+**Auto-index on save:** Modified files are automatically re-indexed when saved — no manual action needed.
+
+**Diagnostic integration:** Error squiggles get a lightbulb "Fix with Indexa" code action that uses indexed context to suggest fixes.
 
 ## 7. Re-index After Code Changes
 
 ```bash
 npx indexa-mcp index "D:\path\to\project"       # Full (skips unchanged files)
 npx indexa-mcp update                            # Git-based incremental
+npx indexa-mcp watch                             # Live re-index on file changes
 ```
 
 Or from Claude Code: _"Use indexa_index to re-index my project"_
+
+The VS Code extension also auto-indexes on save — no action needed.
 
 See [Re-indexing Guide](./reindexing.md) for details.
 
