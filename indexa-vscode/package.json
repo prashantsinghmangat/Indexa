@@ -2,7 +2,7 @@
   "name": "indexa-code-intelligence",
   "displayName": "Indexa — Code Intelligence Engine",
   "description": "Trace execution flows, find references, and understand code instantly. Stop reading files manually — ask Indexa, click the answer, jump to the line.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "PrashantSingh",
   "author": {
     "name": "Prashant Singh",
@@ -100,13 +100,38 @@
         "title": "Indexa: Health Check"
       },
       {
+        "command": "indexa.explainSelection",
+        "title": "Indexa: Explain This",
+        "icon": "$(lightbulb)"
+      },
+      {
+        "command": "indexa.fixThis",
+        "title": "Indexa: Fix This",
+        "icon": "$(wrench)"
+      },
+      {
+        "command": "indexa.whatCallsThis",
+        "title": "Indexa: What Calls This?",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "indexa.refactorThis",
+        "title": "Indexa: Refactor This",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "indexa.generateTests",
+        "title": "Indexa: Generate Tests",
+        "icon": "$(beaker)"
+      },
+      {
         "command": "indexa.copyForAI",
-        "title": "Indexa: Copy for AI",
+        "title": "Indexa: Copy Context for AI",
         "icon": "$(clippy)"
       },
       {
         "command": "indexa.fixBug",
-        "title": "Indexa: Fix Bug with AI",
+        "title": "Indexa: Fix Bug (clipboard)",
         "icon": "$(bug)"
       },
       {
@@ -135,44 +160,46 @@
       ],
       "editor/context": [
         {
-          "command": "indexa.explain",
-          "group": "indexa@1",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "indexa.flow",
-          "group": "indexa@2",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "indexa.references",
-          "group": "indexa@3",
-          "when": "editorHasSelection"
-        },
-        {
-          "submenu": "indexa.aiSubmenu",
-          "group": "indexa@4"
+          "submenu": "indexa.contextSubmenu",
+          "group": "indexa@1"
         }
       ],
-      "indexa.aiSubmenu": [
+      "indexa.contextSubmenu": [
         {
-          "command": "indexa.copyForAI",
-          "group": "ai@1"
+          "command": "indexa.explainSelection",
+          "group": "1_understand@1"
         },
         {
-          "command": "indexa.fixBug",
-          "group": "ai@2"
+          "command": "indexa.fixThis",
+          "group": "1_understand@2"
+        },
+        {
+          "command": "indexa.whatCallsThis",
+          "group": "1_understand@3"
+        },
+        {
+          "command": "indexa.refactorThis",
+          "group": "2_improve@1"
+        },
+        {
+          "command": "indexa.generateTests",
+          "group": "2_improve@2"
+        },
+        {
+          "command": "indexa.copyForAI",
+          "group": "3_export@1"
         },
         {
           "command": "indexa.openForCopilot",
-          "group": "ai@3"
+          "group": "3_export@2"
         }
       ]
     },
     "submenus": [
       {
-        "id": "indexa.aiSubmenu",
-        "label": "Indexa AI"
+        "id": "indexa.contextSubmenu",
+        "label": "Indexa",
+        "icon": "$(search)"
       }
     ],
     "configuration": {
@@ -205,6 +232,18 @@
         "command": "indexa.ask",
         "key": "ctrl+shift+i",
         "mac": "cmd+shift+i"
+      },
+      {
+        "command": "indexa.fixThis",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "indexa.explainSelection",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus"
       }
     ]
   },

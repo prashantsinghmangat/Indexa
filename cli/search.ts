@@ -564,6 +564,94 @@ export function impactChainCommand(
 }
 
 /**
+ * CLI code-grep command — regex pattern search across indexed source files.
+ */
+export function codeGrepCommand(
+  pattern: string,
+  options: { filePattern?: string; maxResults?: number; context?: number; dataDir?: string }
+): void {
+  const dataDir = options.dataDir || defaultDataDir();
+  const maxResults = options.maxResults || 50;
+  const contextLines = options.context || 1;
+
+  const vectorDB = new VectorDB(dataDir);
+
+  if (vectorDB.size === 0) {
+    logger.error('No indexed data found. Run "indexa index" first.');
+    return;
+  }
+
+  let regex: RegExp;
+  try {
+    regex = new RegExp(pattern, 'gi');
+  } catch (err) {
+    logger.error(`Invalid regex: ${err instanceof Error ? err.message : err}`);
+    return;
+  }
+
+  const allFiles = vectorDB.getFilePaths();
+  const filesToSearch = options.filePattern
+    ? allFiles.filter(f => f.replace(/\\/g, '/').toLowerCase().includes(options.filePattern!.toLowerCase()))
+    : allFiles;
+
+  logger.info(`Searching /${pattern}/ in ${filesToSearch.length} files...`);
+
+  let totalMatches = 0;
+  let filesWithMatches = 0;
+
+  for (const filePath of filesToSearch) {
+    if (totalMatches >= maxResults) break;
+
+    let content: string;
+    try {
+      if (!fs.existsSync(filePath)) continue;
+      const raw = fs.readFileSync(filePath);
+      if (raw.subarray(0, 4096).includes(0)) continue;
+      content = raw.toString('utf-8');
+    } catch { continue; }
+
+    const lines = content.split('\n');
+    const fileMatches: Array<{ line: number; context: string[] }> = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      if (totalMatches >= maxResults) break;
+      regex.lastIndex = 0;
+      if (regex.test(lines[i])) {
+        const ctxStart = Math.max(0, i - contextLines);
+        const ctxEnd = Math.min(lines.length - 1, i + contextLines);
+        const ctx: string[] = [];
+        for (let c = ctxStart; c <= ctxEnd; c++) {
+          const prefix = c === i ? '> ' : '  ';
+          ctx.push(`${prefix}${c + 1}: ${lines[c]}`);
+        }
+        fileMatches.push({ line: i + 1, context: ctx });
+        totalMatches++;
+      }
+    }
+
+    if (fileMatches.length > 0) {
+      filesWithMatches++;
+      console.log(`\n  ${filePath} (${fileMatches.length} matches)`);
+      for (const match of fileMatches) {
+        for (const line of match.context) {
+          console.log(`    ${line}`);
+        }
+        if (match !== fileMatches[fileMatches.length - 1]) console.log('');
+      }
+    }
+  }
+
+  if (totalMatches === 0) {
+    console.log(`\nNo matches for /${pattern}/ in ${filesToSearch.length} files.`);
+  } else {
+    console.log(`\n${totalMatches} matches in ${filesWithMatches} files (searched ${filesToSearch.length}).`);
+    if (totalMatches >= maxResults) {
+      console.log(`Showing first ${maxResults}. Use --max-results for more.`);
+    }
+  }
+}
+
+/**
  * CLI watch command — watch for file changes and re-index incrementally.
  * Uses debouncing, handles deletions, and gives clear status output.
  */

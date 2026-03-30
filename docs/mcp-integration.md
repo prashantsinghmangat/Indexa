@@ -1,6 +1,6 @@
 # Indexa — MCP Integration with Claude Code
 
-Indexa provides 9 MCP tools including execution flow tracing, code explanation, and context-stitched bundles. Proven 51% token reduction vs manual file reading.
+Indexa provides 19 MCP tools including execution flow tracing, code explanation, context-stitched bundles, dead code detection, impact analysis, and security scanning. Proven 51% token reduction vs manual file reading.
 
 ## Setup (One Command)
 
@@ -10,9 +10,10 @@ npx indexa-mcp setup
 
 This automatically:
 1. Installs and indexes your codebase with ML embeddings
-2. Configures `~/.mcp.json` for Claude Code
+2. Configures `~/.mcp.json` for Claude Code (with MCP `instructions` field for auto-tool-selection)
 3. Creates a project-level `.mcp.json`
-4. Verifies everything works
+4. Creates `CLAUDE.md` with Indexa tool instructions (auto-use priority)
+5. Verifies everything works
 
 ### Manual Setup (if needed)
 
@@ -29,13 +30,16 @@ Add to `~/.mcp.json`:
         "D:/Project/Indexa/dist/src/mcp/stdio.js",
         "--data-dir",
         "D:/Project/Indexa/data"
-      ]
+      ],
+      "instructions": "Use Indexa tools FIRST for all code understanding tasks before using Explore, Grep, Read, or Bash. Indexa has pre-indexed code chunks with semantic search, flow tracing, and impact analysis available instantly."
     }
   }
 }
 ```
 
 **Critical:** The `--data-dir` argument passes the absolute path to the data directory. Without it, the MCP server looks for data relative to `__dirname` which may not resolve correctly.
+
+**Note:** The `instructions` field is an MCP-level directive that tells Claude to prefer Indexa tools automatically. This is set by `setup` and works independently of `CLAUDE.md`.
 
 ### 4. (Recommended) Add Project-Level Config
 
@@ -50,6 +54,8 @@ On startup, verify: type `MCP: indexa` — should show chunk/file counts.
 ---
 
 ## CLAUDE.md Template
+
+> **v3.4+:** `indexa-mcp setup` now auto-creates this `CLAUDE.md` for you. You only need to manually add it if you skipped setup or want to customize it.
 
 Add this to the **top** of your project's `CLAUDE.md` to make Claude auto-use Indexa:
 
@@ -154,16 +160,116 @@ Index or re-index a codebase directory. Skips unchanged files.
 
 Index statistics and cache status. No parameters.
 
+### `indexa_dead_code`
+
+Find unreferenced functions, methods, and classes across the index.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| *(none)* | — | — | Returns all unreferenced symbols |
+
+### `indexa_blast_radius`
+
+Dedicated impact analysis — what breaks if you change a symbol.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | *required* | Symbol name to analyze |
+
+### `indexa_importers`
+
+Find all files and symbols that import from a given file.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `path` | string | *required* | File path to check |
+
+### `indexa_circular_deps`
+
+Detect circular dependency / import cycles in the codebase.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| *(none)* | — | — | Scans entire index for cycles |
+
+### `indexa_unused_exports`
+
+Find exported symbols that nobody imports.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| *(none)* | — | — | Returns all unused exports |
+
+### `indexa_duplicates`
+
+Find near-duplicate code blocks via embedding similarity.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `threshold` | number | 0.85 | Similarity threshold 0-1 |
+
+### `indexa_impact_chain`
+
+Full transitive impact analysis — follows the chain of dependents recursively.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `name` | string | *required* | Symbol name |
+| `depth` | number | 3 | Max traversal depth (1-10) |
+
+### `indexa_review_pr`
+
+Context-aware PR review. Analyzes changed files and provides review comments using indexed context.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `baseBranch` | string | `"main"` | Base branch to diff against |
+
+### `indexa_security_scan`
+
+OWASP-grouped security scan across the indexed codebase.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| *(none)* | — | — | Scans for common security patterns |
+
+### `indexa_code_grep`
+
+Regex pattern search across indexed source files.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `pattern` | string | *required* | Regex pattern to search for |
+| `filePattern` | string | `""` | File glob filter (e.g., `*.ts`) |
+
 ---
 
 ## Alternative: VS Code Extension
 
-If you prefer a visual interface over MCP-only workflow, the Indexa VS Code extension provides a sidebar with search, flow tracing, and references — all with click-to-navigate that opens files at the exact line.
+If you prefer a visual interface over MCP-only workflow, the Indexa VS Code extension (v0.4.0) provides a sidebar with search, flow tracing, references, and inline AI commands — all with click-to-navigate that opens files at the exact line.
 
 1. **From Marketplace:** Search "Indexa Code Intelligence" in VS Code Extensions, or visit [Indexa on Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
-2. **Or from GitHub:** Download `.vsix` from [Releases](https://github.com/prashantsinghmangat/Indexa/releases) → `code --install-extension indexa-code-intelligence-0.2.0.vsix`
+2. **Or from GitHub:** Download `.vsix` from [Releases](https://github.com/prashantsinghmangat/Indexa/releases) → `code --install-extension indexa-code-intelligence-0.4.0.vsix`
 3. The extension auto-starts the server — no manual `indexa-mcp serve` needed.
 4. Use `Ctrl+Shift+I` to query from the sidebar.
+
+### Inline AI Commands (v0.4.0)
+
+Select code in the editor and use these commands via right-click or keyboard shortcuts:
+
+| Command | Shortcut | Description |
+|---------|----------|-------------|
+| **Explain This** | `Ctrl+Shift+E` | Explain selected code using indexed context |
+| **Fix This** | `Ctrl+Shift+F` | Fix selected code using indexed context |
+| **What Calls This** | Right-click | Find callers of the selected symbol |
+| **Refactor This** | Right-click | Suggest refactoring using indexed context |
+| **Generate Tests** | Right-click | Generate tests for selected code |
+
+### Diagnostic Integration
+
+The extension integrates with VS Code's diagnostic system:
+- **Lightbulb "Fix with Indexa"** — appears on error squiggles, uses indexed context to suggest fixes
+- **Auto-index on save** — modified files are re-indexed automatically when saved
 
 The extension and MCP integration work independently. You can use both — MCP for Claude Code conversations, and the extension for quick lookups in VS Code.
 
@@ -203,7 +309,11 @@ The `--data-dir` argument is missing or wrong. Check your `.mcp.json`:
 
 ### Claude ignores Indexa and uses Explore/Grep instead
 
-The CLAUDE.md instructions must be at the **very top** of the file, marked as MANDATORY. If buried in the middle (after line 100+), Claude deprioritizes them.
+In v3.4+, the MCP `instructions` field should handle this automatically — Claude is told at the MCP level to prefer Indexa tools. If you still see this issue:
+
+1. Verify your `.mcp.json` has the `"instructions"` field (re-run `npx indexa-mcp setup` to add it)
+2. Ensure `CLAUDE.md` exists at the project root with the Indexa instructions at the **very top** (setup auto-creates this)
+3. If CLAUDE.md instructions are buried in the middle (after line 100+), Claude deprioritizes them — move them to the top
 
 ### MCP error: Input validation error
 

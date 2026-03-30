@@ -71,10 +71,37 @@ const cache = new QueryCache(100, 5);
 const flowEngine = new FlowEngine(vectorDB, search);
 const explainEngine = new ExplainEngine(graph, search);
 
-const server = new McpServer({
-  name: 'indexa',
-  version: '3.4.0',
-});
+const server = new McpServer(
+  {
+    name: 'indexa',
+    version: '3.4.0',
+  },
+  {
+    instructions: `You have access to Indexa, a code intelligence engine that has already indexed this codebase.
+
+IMPORTANT: Always use Indexa tools FIRST before reading files directly. Indexa returns only the relevant symbols, dependencies, and connections — saving 50-70% tokens compared to reading full files.
+
+How to use Indexa:
+
+1. For ANY code question → use indexa_context_bundle FIRST. It returns the relevant code + dependencies + connections within a token budget. This is faster and more accurate than opening files.
+
+2. For "how does X work" / "trace X" → use indexa_flow. It traces call chains across files automatically — no need to open files one by one.
+
+3. For finding code patterns (console.log, TODO, hardcoded strings, specific API calls) → use indexa_code_grep. It searches across all indexed source files with regex. Prefer this over grep/rg for project code searches.
+
+4. For "what uses X" / "where is X used" → use indexa_references. Faster than grep because it uses a pre-built reverse index.
+
+5. For "what breaks if I change X" → use indexa_blast_radius or indexa_impact_chain.
+
+6. For code quality → use indexa_dead_code, indexa_circular_deps, indexa_unused_exports, indexa_duplicates.
+
+7. For security review → use indexa_security_scan.
+
+8. For PR review → use indexa_review_pr.
+
+Only fall back to direct file reading (Read/cat) if Indexa returns no results or you need to see a specific line range that Indexa didn't include.`,
+  }
+);
 
 /** Guard: returns error text if index is empty, null otherwise */
 function emptyIndexGuard(): string | null {
@@ -90,7 +117,7 @@ function emptyIndexGuard(): string | null {
 // ============================================================
 server.tool(
   'indexa_context_bundle',
-  'PRIMARY TOOL. Returns relevant code symbols packed within a token budget, with dependencies and connections between symbols. Use this first for any code question.',
+  'USE THIS FIRST for any code question — BEFORE reading files. Returns relevant code symbols + dependencies + connections, packed within a token budget. 50-70% fewer tokens than reading full files. Replaces: opening files manually, grep for understanding code.',
   {
     query: z.string().describe('What you are looking for'),
     tokenBudget: z.coerce.number().min(100).default(2000).describe('Max tokens (1000-3000 for focused results)'),
@@ -161,7 +188,7 @@ server.tool(
 // ============================================================
 server.tool(
   'indexa_flow',
-  'Trace execution flow from a symbol or query. Shows the call chain across functions and files — what calls what, in order.',
+  'Trace execution flow across files — what calls what, in order. Use this INSTEAD of manually opening files to trace logic. Answers: "how does X work", "trace X", "what happens when X is called".',
   {
     query: z.string().describe('Symbol name, ID, or search query to trace from'),
     depth: z.coerce.number().min(1).max(6).default(3).describe('How many levels deep to trace'),
@@ -244,7 +271,7 @@ server.tool(
 // ============================================================
 server.tool(
   'indexa_search',
-  'Search the indexed codebase. Auto-routes by query type. Use indexa_context_bundle for code + deps, indexa_explain for understanding.',
+  'Smart hybrid search across the indexed codebase. Auto-routes by query type (semantic + keyword + name matching). Returns scored results with code previews. Use indexa_context_bundle instead if you need dependencies and connections.',
   {
     query: z.string().describe('Search query'),
     topK: z.coerce.number().min(1).max(50).default(5).describe('Max results'),
@@ -386,7 +413,7 @@ server.tool(
 // ============================================================
 server.tool(
   'indexa_references',
-  'Find all references to a symbol + blast radius.',
+  'Find all references to a symbol + blast radius. Use this INSTEAD of grep when asked "where is X used", "who calls X". Uses pre-built reverse index — faster and more accurate than text search.',
   {
     name: z.string().describe('Symbol name'),
   },
@@ -1008,6 +1035,124 @@ server.tool(
     output.push('- **A09 Logging Failures**: Sensitive data in console.log');
     output.push('');
     output.push('For each finding provide: Severity, CWE ID, OWASP category, vulnerable code, fix, and blast radius.');
+
+    return { content: [{ type: 'text' as const, text: output.join('\n') }] };
+  }
+);
+
+// ============================================================
+// TOOL 19: indexa_code_grep — Regex pattern search over indexed code
+// ============================================================
+server.tool(
+  'indexa_code_grep',
+  'Regex pattern search across all indexed source files. Use this INSTEAD of grep/rg for searching project code — it automatically skips node_modules, dist, and build artifacts. For: console.log, TODO, hardcoded strings, API calls, any literal pattern.',
+  {
+    pattern: z.string().describe('Regex pattern to search for (e.g., "console\\.log", "TODO|FIXME", "http://localhost")'),
+    filePattern: z.string().optional().describe('Filter files by path pattern (e.g., "src/features", ".tsx"). Leave empty for all indexed files.'),
+    maxResults: z.coerce.number().min(1).max(200).default(50).describe('Max matches to return (default 50)'),
+    contextLines: z.coerce.number().min(0).max(5).default(1).describe('Lines of context around each match (default 1)'),
+  },
+  async ({ pattern, filePattern, maxResults, contextLines }) => {
+    const empty = emptyIndexGuard();
+    if (empty) return { content: [{ type: 'text' as const, text: empty }] };
+
+    let regex: RegExp;
+    try {
+      regex = new RegExp(pattern, 'gi');
+    } catch (err) {
+      return { content: [{ type: 'text' as const, text: `Invalid regex: ${err instanceof Error ? err.message : err}` }] };
+    }
+
+    // Get all indexed file paths
+    const allFiles = vectorDB.getFilePaths();
+    const filesToSearch = filePattern
+      ? allFiles.filter(f => f.replace(/\\/g, '/').toLowerCase().includes(filePattern.toLowerCase()))
+      : allFiles;
+
+    if (filesToSearch.length === 0) {
+      return { content: [{ type: 'text' as const, text: `No indexed files match "${filePattern || '*'}".` }] };
+    }
+
+    const results: Array<{
+      file: string;
+      matches: Array<{ line: number; text: string; context: string[] }>;
+    }> = [];
+    let totalMatches = 0;
+
+    for (const filePath of filesToSearch) {
+      if (totalMatches >= maxResults) break;
+
+      let content: string;
+      try {
+        const fs = require('fs');
+        if (!fs.existsSync(filePath)) continue;
+        const raw = fs.readFileSync(filePath);
+        // Skip binary files
+        if (raw.subarray(0, 4096).includes(0)) continue;
+        content = raw.toString('utf-8');
+      } catch {
+        continue;
+      }
+
+      const lines = content.split('\n');
+      const fileMatches: Array<{ line: number; text: string; context: string[] }> = [];
+
+      for (let i = 0; i < lines.length; i++) {
+        if (totalMatches >= maxResults) break;
+
+        regex.lastIndex = 0;
+        if (regex.test(lines[i])) {
+          // Gather context lines
+          const ctxStart = Math.max(0, i - contextLines);
+          const ctxEnd = Math.min(lines.length - 1, i + contextLines);
+          const context: string[] = [];
+          for (let c = ctxStart; c <= ctxEnd; c++) {
+            const prefix = c === i ? '> ' : '  ';
+            context.push(`${prefix}${c + 1}: ${lines[c]}`);
+          }
+
+          fileMatches.push({
+            line: i + 1,
+            text: lines[i].trim(),
+            context,
+          });
+          totalMatches++;
+        }
+      }
+
+      if (fileMatches.length > 0) {
+        results.push({ file: filePath, matches: fileMatches });
+      }
+    }
+
+    if (results.length === 0) {
+      return { content: [{ type: 'text' as const, text: `No matches for /${pattern}/ in ${filesToSearch.length} files.` }] };
+    }
+
+    // Format output
+    const output: string[] = [
+      `# Code Grep: /${pattern}/`,
+      `${totalMatches} matches in ${results.length} files (searched ${filesToSearch.length} files)`,
+      '',
+    ];
+
+    for (const result of results) {
+      const shortFile = result.file.replace(/.*[/\\](src|public|react-shell)[/\\]/, '$1/').replace(/\\/g, '/');
+      output.push(`## ${shortFile} (${result.matches.length} matches)`);
+
+      for (const match of result.matches) {
+        output.push(`\`\`\``);
+        for (const line of match.context) {
+          output.push(line);
+        }
+        output.push(`\`\`\``);
+      }
+      output.push('');
+    }
+
+    if (totalMatches >= maxResults) {
+      output.push(`--- Showing first ${maxResults} matches. Increase maxResults for more. ---`);
+    }
 
     return { content: [{ type: 'text' as const, text: output.join('\n') }] };
   }

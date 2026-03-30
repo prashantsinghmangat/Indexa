@@ -11,6 +11,14 @@ import { health, reindexFile } from './services/indexaClient';
 import { ensureServer, stopServer } from './services/serverManager';
 import { IndexaSidebarProvider } from './ui/sidebarProvider';
 import { copyForAI, openForCopilot } from './services/aiBridge';
+import {
+  explainSelectionCommand,
+  fixThisCommand,
+  whatCallsThisCommand,
+  refactorThisCommand,
+  generateTestsCommand,
+} from './commands/inlineAI';
+import { registerDiagnosticWatcher } from './services/diagnosticWatcher';
 
 let statusBarItem: vscode.StatusBarItem;
 let sidebarProvider: IndexaSidebarProvider;
@@ -106,7 +114,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // ─── AI Bridge Commands ─────────────────────────────────────────────
+  // ─── Inline AI Commands (the magic flow) ────────────────────────────
+  context.subscriptions.push(
+    vscode.commands.registerCommand('indexa.explainSelection', explainSelectionCommand),
+    vscode.commands.registerCommand('indexa.fixThis', fixThisCommand),
+    vscode.commands.registerCommand('indexa.whatCallsThis', whatCallsThisCommand),
+    vscode.commands.registerCommand('indexa.refactorThis', refactorThisCommand),
+    vscode.commands.registerCommand('indexa.generateTests', generateTestsCommand),
+  );
+
+  // ─── AI Bridge Commands (clipboard fallback) ──────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand('indexa.copyForAI', () => copyForAI()),
     vscode.commands.registerCommand('indexa.fixBug', () => copyForAI('fix')),
@@ -139,6 +156,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     statusBarItem.text = '$(warning) Indexa: Offline';
     statusBarItem.tooltip = 'Indexa server not running. Click to retry.';
   }
+
+  // ─── Diagnostic Integration (lightbulb "Fix with Indexa") ───────────
+  registerDiagnosticWatcher(context);
 
   // ─── Auto-index on Save ──────────────────────────────────────────────
   const autoIndex = vscode.workspace.getConfiguration('indexa').get('autoIndexOnSave', true);

@@ -308,6 +308,74 @@ export class IndexController {
     }
   };
 
+  /** GET /grep?pattern=&filePattern=&maxResults=&context= — regex search across source files */
+  codeGrep = (req: Request, res: Response): void => {
+    try {
+      const pattern = req.query.pattern as string;
+      if (!pattern) {
+        res.status(400).json({ error: 'Missing "pattern" query parameter' });
+        return;
+      }
+
+      let regex: RegExp;
+      try {
+        regex = new RegExp(pattern, 'gi');
+      } catch (err) {
+        res.status(400).json({ error: `Invalid regex: ${err}` });
+        return;
+      }
+
+      const filePattern = req.query.filePattern as string | undefined;
+      const maxResults = parseInt(req.query.maxResults as string) || 50;
+      const contextLines = parseInt(req.query.context as string) || 1;
+
+      const allFiles = this.vectorDB.getFilePaths();
+      const filesToSearch = filePattern
+        ? allFiles.filter(f => f.replace(/\\/g, '/').toLowerCase().includes(filePattern.toLowerCase()))
+        : allFiles;
+
+      const fs = require('fs');
+      const results: Array<{ file: string; matches: Array<{ line: number; text: string }> }> = [];
+      let totalMatches = 0;
+
+      for (const filePath of filesToSearch) {
+        if (totalMatches >= maxResults) break;
+        let content: string;
+        try {
+          if (!fs.existsSync(filePath)) continue;
+          content = fs.readFileSync(filePath, 'utf-8');
+        } catch { continue; }
+
+        const lines = content.split('\n');
+        const fileMatches: Array<{ line: number; text: string }> = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          if (totalMatches >= maxResults) break;
+          regex.lastIndex = 0;
+          if (regex.test(lines[i])) {
+            fileMatches.push({ line: i + 1, text: lines[i].trim() });
+            totalMatches++;
+          }
+        }
+
+        if (fileMatches.length > 0) {
+          results.push({ file: filePath, matches: fileMatches });
+        }
+      }
+
+      res.json({
+        pattern,
+        totalMatches,
+        filesSearched: filesToSearch.length,
+        filesWithMatches: results.length,
+        results,
+      });
+    } catch (err) {
+      logger.error(`Code grep failed: ${err}`);
+      res.status(500).json({ error: 'Code grep failed' });
+    }
+  };
+
   /** GET /stats — get index statistics */
   getStats = (_req: Request, res: Response): void => {
     res.json({

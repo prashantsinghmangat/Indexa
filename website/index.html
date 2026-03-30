@@ -46,7 +46,7 @@
     "license": "https://opensource.org/licenses/MIT",
     "url": "https://github.com/prashantsinghmangat/Indexa",
     "downloadUrl": "https://www.npmjs.com/package/indexa-mcp",
-    "softwareVersion": "3.2",
+    "softwareVersion": "3.4",
     "programmingLanguage": "TypeScript"
   }
   </script>
@@ -132,8 +132,12 @@
               <div class="hero-stat-label">Token reduction</div>
             </div>
             <div>
-              <div class="hero-stat-value gradient-text">9</div>
+              <div class="hero-stat-value gradient-text">19</div>
               <div class="hero-stat-label">MCP tools</div>
+            </div>
+            <div>
+              <div class="hero-stat-value gradient-text">22</div>
+              <div class="hero-stat-label">CLI commands</div>
             </div>
             <div>
               <div class="hero-stat-value gradient-text">&lt;2s</div>
@@ -279,7 +283,7 @@
           <div class="glass step-card fade-in fade-in-delay-3">
             <div class="step-number gradient-text">3</div>
             <h3>Query</h3>
-            <p>AI agents get exactly the code they need through 9 specialized MCP tools.</p>
+            <p>AI agents get exactly the code they need through 19 specialized MCP tools.</p>
             <div class="step-code">"explain the auth flow"</div>
           </div>
         </div>
@@ -322,17 +326,22 @@
           <div class="glass feature-card fade-in fade-in-delay-2">
             <div class="feature-icon red" aria-hidden="true"><i data-lucide="monitor"></i></div>
             <h3>VS Code Extension</h3>
-            <p>6 built-in commands including Ask Indexa (Ctrl+Shift+I). Seamless integration right in your editor.</p>
+            <p>Inline AI commands: Explain This, Fix This, Refactor, Generate Tests. Right-click menu + keyboard shortcuts. Auto-index on save.</p>
           </div>
           <div class="glass feature-card fade-in">
             <div class="feature-icon cyan" aria-hidden="true"><i data-lucide="terminal"></i></div>
-            <h3>One Command Setup</h3>
-            <p><code>npx indexa-mcp setup</code> handles everything: detection, indexing, and MCP configuration. Zero friction.</p>
+            <h3>Zero-Config Setup</h3>
+            <p><code>npx indexa-mcp setup</code> — indexes, configures MCP, creates CLAUDE.md, verifies. Claude Code uses Indexa automatically.</p>
           </div>
           <div class="glass feature-card fade-in fade-in-delay-1">
             <div class="feature-icon accent" aria-hidden="true"><i data-lucide="shield-check"></i></div>
-            <h3>Works with Claude Code</h3>
-            <p>Native MCP integration that auto-configures ~/.mcp.json. Built specifically for Claude and other AI agents.</p>
+            <h3>Code Quality Built In</h3>
+            <p>Dead code detection, circular dependencies, unused exports, duplicate code finder, security scan — all in one tool.</p>
+          </div>
+          <div class="glass feature-card fade-in fade-in-delay-2">
+            <div class="feature-icon green" aria-hidden="true"><i data-lucide="shield"></i></div>
+            <h3>Battle-Tested Reliability</h3>
+            <p>Binary file protection, corrupt index recovery, embedding fallback, buffer overflow guards. 23 integration tests. Built for daily use.</p>
           </div>
         </div>
       </div>
@@ -402,8 +411,8 @@
     <section class="tools" id="tools">
       <div class="container text-center">
         <span class="section-label fade-in">MCP Tools</span>
-        <h2 class="section-title fade-in"><span class="gradient-text">9 specialized tools</span> for every query</h2>
-        <p class="section-subtitle center fade-in fade-in-delay-1">Each tool is designed for a specific type of code intelligence query, ensuring optimal results every time.</p>
+        <h2 class="section-title fade-in"><span class="gradient-text">19 specialized tools</span> for every query</h2>
+        <p class="section-subtitle center fade-in fade-in-delay-1">Search, trace, analyze, and review code. Dead code detection, circular deps, duplicate finder, security scans, PR review, and more.</p>
 
         <div class="tools-grid">
           <div class="glass tool-card fade-in">
@@ -485,6 +494,78 @@
             <div>
               <div class="tool-name">stats</div>
               <div class="tool-desc">Shows indexing statistics — chunk counts, file coverage, embedding status.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">dead_code</div>
+              <div class="tool-desc">Find unreferenced functions, methods, and classes across the entire codebase.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">blast_radius</div>
+              <div class="tool-desc">What breaks if you change a symbol? Direct refs, transitive impact, affected files.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-2">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 12H8M12 16V8"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">circular_deps</div>
+              <div class="tool-desc">Detect circular dependencies between files. Break import cycles before they break you.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">duplicates</div>
+              <div class="tool-desc">Find near-duplicate code via embedding similarity. Spot copy-paste patterns instantly.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">code_grep</div>
+              <div class="tool-desc">Regex pattern search across all indexed source files. Find console.log, TODO, hardcoded URLs.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-2">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">security_scan</div>
+              <div class="tool-desc">Deep security analysis grouped by OWASP domains — auth, XSS, secrets, crypto.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">review_pr</div>
+              <div class="tool-desc">Context-aware PR review — changed files, blast radius, connections, review checklist.</div>
+            </div>
+          </div>
+          <div class="glass tool-card fade-in fade-in-delay-1">
+            <div class="tool-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            </div>
+            <div>
+              <div class="tool-name">impact_chain</div>
+              <div class="tool-desc">Full transitive impact analysis — trace every symbol affected across all depths.</div>
             </div>
           </div>
         </div>
@@ -626,7 +707,7 @@
             <div class="stat-label">Token reduction verified</div>
           </div>
           <div class="glass stat-card fade-in fade-in-delay-2">
-            <div class="stat-value gradient-text" data-count="9" data-suffix="">0</div>
+            <div class="stat-value gradient-text" data-count="19" data-suffix="">0</div>
             <div class="stat-label">MCP tools available</div>
           </div>
           <div class="glass stat-card fade-in fade-in-delay-3">
@@ -683,6 +764,27 @@
                 <td><span class="cross">&#10007;</span></td>
                 <td><span class="cross">&#10007;</span></td>
                 <td class="comparison-highlight"><span class="check">&#10003;</span> What breaks if you change X</td>
+              </tr>
+              <tr>
+                <td>Dead code detection</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Unreferenced symbols</td>
+              </tr>
+              <tr>
+                <td>Circular dependencies</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Import cycle detection</td>
+              </tr>
+              <tr>
+                <td>Duplicate code finder</td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td><span class="cross">&#10007;</span></td>
+                <td class="comparison-highlight"><span class="check">&#10003;</span> Embedding similarity</td>
               </tr>
               <tr>
                 <td>Token efficiency</td>

@@ -1,4 +1,4 @@
-# Indexa v3.2 — Quick Start
+# Indexa v3.4 — Quick Start
 
 Get up and running in under 60 seconds. Free forever — no API keys, runs locally, offline-capable.
 
@@ -26,8 +26,9 @@ This single command:
 3. **Adds** `.indexa/` to your `.gitignore` automatically
 4. **Indexes** the codebase with ML embeddings (Transformers.js, 384-dim)
 5. **Cleans** junk entries (minified builds, vendor scripts, storybook, tests)
-6. **Configures MCP** — adds Indexa to `~/.mcp.json` and creates project-level `.mcp.json` pointing to `.indexa/`
-7. **Verifies** by running a live test query
+6. **Configures MCP** — adds Indexa to `~/.mcp.json` (with `instructions` field) and creates project-level `.mcp.json` pointing to `.indexa/`
+7. **Creates `CLAUDE.md`** with Indexa tool instructions so Claude auto-uses Indexa first
+8. **Verifies** by running a live test query
 
 After setup, your project looks like:
 ```

@@ -25,7 +25,8 @@ npx indexa-mcp setup "D:\SafeGuard\SPINext-App"     # Explicit project path
 3. Cleans junk entries (minified builds, vendor scripts, tests)
 4. Configures MCP in `~/.mcp.json` (merges, doesn't overwrite other servers)
 5. Creates project-level `.mcp.json` for team sharing
-6. Runs a live test query to verify everything works
+6. Creates `CLAUDE.md` with Indexa tool instructions (auto-use priority)
+7. Runs a live test query to verify everything works
 
 ---
 
@@ -158,8 +159,131 @@ npx indexa-mcp clean
 
 ## `serve`
 
-Start the REST API server. Exposes 12 endpoints.
+Start the REST API server. Exposes 22 endpoints.
 
 ```bash
 npx indexa-mcp serve --port 3000
 ```
+
+---
+
+## `dead-code`
+
+Find unreferenced functions, methods, and classes in the index.
+
+```bash
+npx indexa-mcp dead-code
+```
+
+---
+
+## `blast-radius`
+
+Dedicated impact analysis — what breaks if you change a symbol.
+
+```bash
+npx indexa-mcp blast-radius "VendorService"
+```
+
+| Option | Description |
+|--------|-------------|
+| `<symbol>` | Symbol name to analyze (required) |
+
+---
+
+## `impact-chain`
+
+Full transitive impact analysis — follows the dependency chain recursively.
+
+```bash
+npx indexa-mcp impact-chain "pricingService"
+npx indexa-mcp impact-chain "VendorService" --depth 5
+```
+
+| Option | Description |
+|--------|-------------|
+| `<symbol>` | Symbol name (required) |
+| `-d, --depth <number>` | Max traversal depth (default: 3) |
+
+---
+
+## `circular-deps`
+
+Detect circular dependency / import cycles in the codebase.
+
+```bash
+npx indexa-mcp circular-deps
+```
+
+---
+
+## `unused-exports`
+
+Find exported symbols that nobody imports.
+
+```bash
+npx indexa-mcp unused-exports
+```
+
+---
+
+## `duplicates`
+
+Find near-duplicate code blocks via embedding similarity.
+
+```bash
+npx indexa-mcp duplicates
+npx indexa-mcp duplicates -t 0.9
+```
+
+| Option | Description |
+|--------|-------------|
+| `-t, --threshold <number>` | Similarity threshold 0-1 (default: 0.85) |
+
+---
+
+## `export`
+
+Export LLM-ready context for a query. Supports JSON and Markdown output.
+
+```bash
+npx indexa-mcp export "authentication flow"
+npx indexa-mcp export "vendor pricing" -o context.md -f markdown
+```
+
+| Option | Description |
+|--------|-------------|
+| `<query>` | Search query (required) |
+| `-o, --output <file>` | Output file path (default: stdout) |
+| `-f, --format <format>` | Output format: `json` or `markdown` (default: json) |
+
+---
+
+## `grep`
+
+Regex pattern search across indexed source files.
+
+```bash
+npx indexa-mcp grep "TODO|FIXME"
+npx indexa-mcp grep "async function" -f "*.ts"
+```
+
+| Option | Description |
+|--------|-------------|
+| `<pattern>` | Regex pattern (required) |
+| `-f, --file-pattern <glob>` | File glob filter (e.g., `*.ts`) |
+
+---
+
+## `watch`
+
+Live re-index on file changes. Watches the project directory and re-indexes modified files automatically with debouncing.
+
+```bash
+npx indexa-mcp watch
+npx indexa-mcp watch "D:\path\to\project"
+```
+
+| Option | Description |
+|--------|-------------|
+| `[dir]` | Directory to watch (default: current directory) |

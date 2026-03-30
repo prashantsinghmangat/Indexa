@@ -11,75 +11,39 @@
 
 # Indexa
 
-**Your AI reads 10,000 lines to find 1 function.**
-**Indexa gives it exactly what it needs.**
+**Your AI reads 10,000 lines to find 1 function. Indexa gives it exactly what it needs.**
 
 A context engine for AI coding tools. Sits between your codebase and your AI assistant — returns symbols, dependencies, and execution flows instead of full files.
 
-Index once. Query forever. **50% fewer tokens.**
+Index once. Query forever. **50-70% fewer tokens.**
 
-[Website](https://prashantsinghmangat.github.io/Indexa/) · [npm](https://www.npmjs.com/package/indexa-mcp) · [GitHub](https://github.com/prashantsinghmangat/Indexa)
-
----
-
-## See It In 5 Seconds
-
-```bash
-$ npx indexa-mcp setup
-  ✓ Indexed 87 chunks in 5s
-  ✓ MCP configured for Claude Code
-```
-
-```
-You:   "trace the login flow"
-Indexa: VendorAuthGuard → VendorFlowGuard → verifyPkceSession
-        → getAppSessionCookie → useVcAuthStore
-        9 steps. 5 files. 2,500 tokens. Done.
-```
-
-```
-You:   "what breaks if I change UserService?"
-Indexa: 12 references across 8 files. Blast radius mapped.
-```
-
-**That's Indexa.** One query replaces 15 minutes of manual tracing.
+[Website](https://prashantsinghmangat.github.io/Indexa/) | [npm](https://www.npmjs.com/package/indexa-mcp) | [GitHub](https://github.com/prashantsinghmangat/Indexa) | [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
 
 ---
 
-## Why Indexa?
+## Why Developers Use Indexa Daily
 
-Without Indexa, AI agents explore code the expensive way:
+### The problem
+
+Every AI coding tool — Copilot, Claude, ChatGPT — has the same bottleneck: **context**. They open full files, skim hundreds of lines, burn thousands of tokens, and still miss dependencies across files.
 
 ```
-❌  Open file → skim 800 lines → find 1 function → repeat × 7 files
-    = 10,000+ tokens burned on irrelevant code
+Without Indexa:
+  Open file (800 lines) → find 1 function → repeat x7 files
+  = 10,000+ tokens burned. 30+ seconds. Missed dependencies.
 ```
 
+### The fix
+
+Indexa indexes your codebase once, then answers any question with **only the relevant symbols, their dependencies, and connections** — packed within a token budget.
+
+```
 With Indexa:
-
-```
-✅  "explain the auth flow" → 5 relevant symbols + dependencies + connections
-    = 3,000 tokens. Same answer. 70% less waste.
+  "explain the auth flow" → 5 symbols + deps + connections
+  = 3,000 tokens. 2 seconds. Nothing missed.
 ```
 
-**Proven result:** 51% average token reduction in real-world testing on production codebases.
-
----
-
-## Before vs After
-
-### Without Indexa
-- Open files manually, skim hundreds of lines
-- Grep across the repo, piece together context
-- Copy-paste into AI, hope it understands
-- Miss hidden dependencies and call chains
-- Burn 10K+ tokens per question
-
-### With Indexa
-- Ask one question, get exact symbols + dependencies
-- See execution flow across files instantly
-- Know the blast radius before you refactor
-- **50% fewer tokens. Better answers. No guesswork.**
+**Proven: 51% average token reduction** on production codebases.
 
 ---
 
@@ -89,134 +53,162 @@ With Indexa:
 npx indexa-mcp setup
 ```
 
-That's it. One command. Under 60 seconds. It:
-
-1. Detects your project (language, framework)
-2. Indexes your code with ML embeddings
-3. Creates `.indexa/` in your project (per-project, gitignored)
-4. Configures MCP for Claude Code
-5. Runs a test query to prove it works
+One command. Under 60 seconds. Indexes your code, configures MCP for Claude Code, runs a test query.
 
 ```
+  Indexa Setup
   ✓ Project: my-app (typescript / react)
   ✓ Indexed 87 chunks in 5.3s
   ✓ MCP configured
   ✓ Test query: found 3 results
 
-  ╔═══════════════════════════════════╗
-  ║   Indexa ready!                    ║
-  ╚═══════════════════════════════════╝
+  Indexa ready!
 ```
 
-Restart Claude Code. Now just ask your AI:
+Restart Claude Code. Ask anything:
 
 - _"explain the auth flow"_
-- _"trace the login logic"_
-- _"where is pricingService used"_
+- _"trace handleLogin"_
 - _"what breaks if I change UserService"_
+- _"find dead code"_
 
 ---
 
-## Understand Code, Not Just Search It
+## What Indexa Does for Your Daily Workflow
 
-Search tools return files. **Indexa traces execution.**
+### 1. Understand any feature in seconds
 
 ```
-Query: "trace VendorAuthGuard"
+You:    "how does the theme system work"
+Indexa: 3 symbols + connections = 1,789 tokens
 
-VendorAuthGuard
-  → VendorFlowGuard
-    → verifyPkceSession
-      → getAppSessionCookie
-        → useVcAuthStore
+  [component] ThemeSwitcher — UI picker (4 themes)
+  [function]  ThemeApplier  — sets data-theme on <html>
+  [export]    Theme         — type definition
 
-9 steps. 5 files. One query.
+  Connections:
+    ThemeSwitcher → calls → useUIStore
+    ThemeApplier  → calls → useUIStore
 ```
 
-This is what normally takes 10-15 minutes of manual file-by-file tracing. Indexa does it in under 2 seconds.
+**Without Indexa:** Read 3 full files (400+ lines, 5,000 tokens). **With Indexa:** 1,789 tokens. Same understanding.
+
+### 2. Trace execution flows across files
+
+```
+You:    "trace VendorAuthGuard"
+Indexa: 9 steps across 5 files, 2 seconds
+
+  1. VendorAuthGuard → calls VendorFlowGuard, StaffFlowGuard
+  2. VendorFlowGuard → calls verifyPkceSession, setAuth
+  3. verifyPkceSession → calls getAppSessionCookie, isRealJwt
+  4. getAppSessionCookie → reads document.cookie
+  5. useVcAuthStore → Zustand store (sessionStorage)
+```
+
+This normally takes 10-15 minutes of manual file-by-file tracing.
+
+### 3. Know what breaks before you refactor
+
+```
+You:    "what breaks if I change UserService"
+Indexa: 12 direct references, 23 transitive, 8 files affected
+
+  Direct:
+    [controller] UserController — src/controllers/user.ts:15
+    [service] AuthService — src/services/auth.ts:42
+    [component] UserProfile — src/components/UserProfile.tsx:8
+    ... +9 more
+
+  Transitive impact (depth 3):
+    AuthService → LoginPage → App → 3 more files
+```
+
+### 4. Clean up your codebase
+
+```
+You:    "find dead code"
+Indexa: 7 unreferenced symbols across 4 files
+
+  src/utils/legacy.ts
+    [function] formatOldDate (L12-28) — Unused function
+    [function] parseLegacyToken (L30-45) — Unused function
+
+  src/helpers/deprecated.ts
+    [function] oldValidate (L5-18) — Unused function
+```
+
+```
+You:    "find circular dependencies"
+Indexa: 2 cycles detected
+
+  Cycle 1: src/auth/guard.ts → src/auth/session.ts → src/auth/guard.ts
+  Cycle 2: src/store/user.ts → src/store/ui.ts → src/store/user.ts
+```
+
+```
+You:    "find duplicate code"
+Indexa: 3 pairs above 92% similarity
+
+  Pair 1 — 96.2% similar:
+    [function] validateUserInput — src/validators/user.ts:12-35
+    [function] validateAdminInput — src/validators/admin.ts:8-31
+```
+
+### 5. Review PRs with full context
+
+```
+You:    "review this PR"
+Indexa: 4 changed files, 12 symbols, blast radius mapped
+
+  src/services/auth.ts (3 symbols)
+    [method] validateToken — impact: 5 direct refs, 12 files affected
+    [method] refreshSession — impact: 3 direct refs, 8 files affected
+
+  Key connections:
+    validateToken → calls → decodeJWT → verifySignature
+    refreshSession → calls → validateToken → updateStore
+```
+
+### 6. Export context for any AI tool
+
+```bash
+# Export to markdown — paste into ChatGPT, Claude, or any LLM
+indexa export "auth flow" -o context.md
+
+# Export as JSON — pipe to scripts, CI/CD
+indexa export "payment logic" -f json | your-tool
+
+# Copy to clipboard with structured prompt
+# (VS Code: Ctrl+Shift+P → "Indexa: Copy for AI")
+```
+
+### 7. Live re-indexing — always fresh
+
+```bash
+indexa watch
+# Indexa Watch Mode — monitoring ./src
+# [10:30:15] 2 files → 8 chunks indexed (total: 142)
+# [10:31:02] 1 files → 3 chunks indexed (total: 145)
+```
+
+VS Code auto-indexes on save — no manual step needed.
 
 ---
 
-## One Query. Full System Understanding.
+## Efficiency Gains
 
-```
-"trace VendorAuthGuard"  →  9-step execution flow, 5 files connected
-"explain theme system"   →  3 symbols + dependencies + connections, 1,789 tokens
-"references to pricing"  →  12 usages across 8 files, blast radius mapped
-```
-
-This is code intelligence, not file search.
-
----
-
-## See It Work — Real Examples
-
-### Example 1: Understand a feature
-
-```
-Query: "how does the theme system work"
-```
-
-Indexa returns:
-
-```
-=== [component] ThemeSwitcher ===
-File: src/components/ui/ThemeSwitcher.tsx:14-84
-→ UI picker with 4 themes (default/cyberpunk/minimal/matrix)
-
-=== [function] ThemeApplier ===
-File: src/components/ui/ThemeApplier.tsx:6-14
-→ Sets data-theme on <html>, triggers CSS variable swap
-
-=== [export] Theme ===
-File: src/store/uiStore.ts:5
-→ type Theme = "default" | "cyberpunk" | "minimal" | "matrix"
-
---- Connections ---
-ThemeSwitcher → calls → useUIStore
-ThemeApplier → calls → useUIStore
-
-Tokens: ~1,789 / 3,000
-```
-
-**Without Indexa:** Claude reads 3 full files (400+ lines, ~5,000 tokens).
-**With Indexa:** 3 precise symbols + connections = 1,789 tokens.
-
-### Example 2: Trace an execution flow
-
-```
-Query: "trace VendorAuthGuard"
-```
-
-```
-Flow from VendorAuthGuard (9 steps):
-
-1. [component] VendorAuthGuard → calls: VendorFlowGuard, StaffFlowGuard
-2. [component] VendorFlowGuard → calls: verifyPkceSession, setAuth
-3. [function] verifyPkceSession → calls: getAppSessionCookie, isRealJwt
-4. [function] getAppSessionCookie → reads document.cookie
-5. [export] useVcAuthStore → Zustand store (sessionStorage persistence)
-```
-
-One query. Full call chain across 5 files. No manual tracing.
-
-### Example 3: Find what breaks if you change something
-
-```
-Query: "references to pricingService"
-```
-
-```
-References to "pricingService": 12 direct, 8 files affected
-
-- ChangeSource.js → calls ListChangeSource, GetChangeSource
-- ClientTaskRateLookup.js → calls GetClientTaskRateLookupList
-- EditChangeSource.js → calls UpdateChangeSource
-- AddClientTaskmap.js → calls AddClientTaskMap
-  ... +8 more
-```
-
-Know the blast radius before you refactor.
+| Metric | Without Indexa | With Indexa | Improvement |
+|--------|---------------|-------------|-------------|
+| Tokens per question | 5,000-15,000 | 1,500-3,000 | **50-70% reduction** |
+| Time to understand a feature | 10-15 min | 2 seconds | **300x faster** |
+| Files opened to trace a flow | 5-10 files | 0 files (one query) | **Zero manual work** |
+| Finding dead code | Hours (manual audit) | 1 command | **Instant** |
+| Blast radius before refactor | Guess and pray | Full impact map | **100% visibility** |
+| PR review context gathering | 15-30 min | 1 command | **30x faster** |
+| Keeping index fresh | Manual re-run | Auto on save | **Zero friction** |
+| Circular dependency detection | External tool / manual | Built in | **Free** |
+| Duplicate code detection | External tool ($$$) | Built in | **Free** |
 
 ---
 
@@ -227,159 +219,94 @@ Your Code → Parser (AST) → Chunker → Embedder → .indexa/
                                                      ↓
 AI Query  → Intent Router → Hybrid Search → Bundle → Response
                                ↓
-                    Semantic (35%) + BM25 (25%)
-                  + Name match (15%) + Path (25%)
+                  Semantic (35%) + BM25 (25%)
+                + Name match (15%) + Path (25%)
 ```
 
-1. **Index once** — AST parsing extracts functions, classes, components. ML embeddings (Transformers.js, 384-dim) capture meaning. Stored in `.indexa/` per project.
-2. **Query smartly** — Auto-detects intent (flow/explain/debug/search). Routes to the best strategy.
-3. **Return minimal context** — Only relevant symbols, packed within a token budget. Includes dependencies and connections.
+1. **Index once** — AST parsing (ts-morph) extracts functions, classes, components. ML embeddings (Transformers.js, 384-dim) capture meaning. Stored in `.indexa/` per project.
+2. **Query smartly** — Auto-detects intent (flow/explain/debug/search). Routes to the best strategy. No configuration needed.
+3. **Return minimal context** — Only relevant symbols, packed within a token budget. Includes dependencies and connections between symbols.
+
+### Built for reliability
+
+- Binary file protection — skips images, PDFs, compiled files automatically
+- Corrupt index recovery — auto-backup before every save, restores from `.bak`
+- Embedding fallback — hash-based embeddings if ML model download fails
+- Buffer overflow protection — validates all byte offsets before reading
+- Reverse reference index — O(1) lookups instead of O(n) scans
+- 23 integration tests — first-run, recovery, binary handling, performance
 
 ---
 
-## 18 MCP Tools for Claude Code
+## 18 MCP Tools
 
 | Tool | What it does |
 |------|-------------|
-| **`indexa_context_bundle`** | **Start here.** Returns relevant code + deps + connections within token budget |
+| **`indexa_context_bundle`** | **Start here.** Code + deps + connections within token budget |
 | **`indexa_flow`** | Trace execution: what calls what, across files |
 | **`indexa_explain`** | Human-readable explanation from actual code |
 | `indexa_search` | Smart search — auto-routes by query type |
 | `indexa_symbol` | Instant lookup by name or ID |
-| `indexa_file` | Get all symbols in a file |
+| `indexa_file` | All symbols in a file |
 | `indexa_references` | Find usages + blast radius |
+| `indexa_dead_code` | Unreferenced functions, methods, classes |
+| `indexa_blast_radius` | What breaks if you change a symbol |
+| `indexa_impact_chain` | Full transitive impact (deeper than blast radius) |
+| `indexa_circular_deps` | Circular dependencies between files |
+| `indexa_unused_exports` | Exports nobody imports |
+| `indexa_duplicates` | Near-duplicate code via embedding similarity |
+| `indexa_importers` | Who imports from a given file |
+| `indexa_review_pr` | Context-aware PR review |
+| `indexa_security_scan` | Deep scan grouped by OWASP domains |
 | `indexa_index` | Index or re-index a directory |
 | `indexa_stats` | Index health and stats |
-| `indexa_dead_code` | Find unreferenced functions, methods, classes |
-| `indexa_blast_radius` | Impact analysis — what breaks if you change a symbol |
-| `indexa_importers` | Find all symbols that import from a file |
-| **`indexa_circular_deps`** | **NEW.** Detect circular dependencies between files |
-| **`indexa_unused_exports`** | **NEW.** Find exports nobody imports |
-| **`indexa_duplicates`** | **NEW.** Find near-duplicate code via embedding similarity |
-| **`indexa_impact_chain`** | **NEW.** Full transitive impact analysis (deeper than blast radius) |
-| **`indexa_review_pr`** | **NEW.** Context-aware PR review — changed files + impact + connections |
-| `indexa_security_scan` | Deep security scan grouped by OWASP domains |
 
-MCP is auto-configured by `indexa-mcp setup`. No manual `.mcp.json` editing.
+Auto-configured by `indexa setup`. No manual `.mcp.json` editing.
 
 ---
 
-## CLI Cheat Sheet
+## CLI — 21 Commands
 
 ```bash
-# Setup & Health
-indexa-mcp setup                    # One-command setup (auto everything)
-indexa-mcp doctor                   # Health check
+# Setup
+indexa setup                        # One-command setup
+indexa doctor                       # Health check
 
-# Search & Retrieve
-indexa-mcp search "auth middleware" # Hybrid search
-indexa-mcp bundle "payment flow"    # Context bundle (best for LLMs)
-indexa-mcp flow "handleLogin"       # Execution flow
-indexa-mcp explain "pricing system" # Code explanation
+# Search & Context
+indexa search "auth middleware"      # Hybrid search
+indexa bundle "payment flow"        # Context bundle for LLMs
+indexa flow "handleLogin"           # Execution flow
+indexa explain "pricing system"     # Code explanation
 
-# Analysis & Intelligence
-indexa-mcp dead-code                # Find unreferenced symbols
-indexa-mcp blast-radius UserService # What breaks if you change it
-indexa-mcp impact-chain UserService # Full transitive impact chain
-indexa-mcp circular-deps            # Detect circular dependencies
-indexa-mcp unused-exports           # Find exports nobody imports
-indexa-mcp duplicates               # Find near-duplicate code
-indexa-mcp duplicates -t 0.85       # Lower threshold = more results
-indexa-mcp export "auth flow"       # Export LLM-ready context to stdout
-indexa-mcp export "auth" -o ctx.md  # Export to file
-indexa-mcp export "auth" -f json    # Export as JSON
-indexa-mcp watch                    # Live re-index on file changes
+# Code Analysis
+indexa dead-code                    # Unreferenced symbols
+indexa blast-radius UserService     # What breaks
+indexa impact-chain UserService     # Full transitive impact
+indexa circular-deps                # Import cycles
+indexa unused-exports               # Dead exports
+indexa duplicates                   # Near-duplicate code
+indexa duplicates -t 0.85           # Custom threshold
+
+# Export & Live
+indexa export "auth" -o context.md  # Export context to file
+indexa export "auth" -f json        # Export as JSON
+indexa watch                        # Live re-index on save
 
 # Index Management
-indexa-mcp index ./src              # Full index (skips unchanged)
-indexa-mcp update                   # Incremental via git diff
-indexa-mcp clean                    # Remove junk chunks
-indexa-mcp benchmark                # Token savings comparison
-
-# Server
-indexa-mcp serve                    # REST API on :3000
+indexa index ./src                  # Full index
+indexa update                       # Incremental via git diff
+indexa clean                        # Remove junk chunks
+indexa reindex ./src                # Full clean re-index
+indexa serve                        # REST API on :3000
 ```
 
-> Install globally: `npm i -g indexa-mcp` to drop the `npx` prefix.
+Install globally: `npm i -g indexa-mcp`
 
 ---
 
-## VS Code Extension
+## REST API — 21 Endpoints
 
-A full-featured sidebar extension with search, flow tracing, references, and click-to-navigate (opens file at exact line). Type-aware icons for functions, components, services, and more. Auto-starts the Indexa server — no manual terminal needed.
-
-### Install
-
-**From VS Code Marketplace (recommended):**
-
-Search "Indexa Code Intelligence" in VS Code Extensions, or install directly:
-[Indexa on VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence)
-
-**Or from GitHub Releases:**
-
-Download `indexa-code-intelligence-0.2.0.vsix` from [GitHub Releases](https://github.com/prashantsinghmangat/Indexa/releases), then:
-```bash
-code --install-extension indexa-code-intelligence-0.2.0.vsix
-```
-
-### Features
-
-| Command | Shortcut | What it does |
-|---------|----------|-------------|
-| **Ask Indexa** | `Ctrl+Shift+I` | Query from sidebar with clickable example queries |
-| **Explain This** | — | Explain selected code |
-| **Show Flow** | — | Trace from selection |
-| **Find References** | — | Usages + blast radius |
-| **Reindex** | — | Re-index workspace |
-| **Health Check** | — | Verify connection |
-
----
-
-## Per-Project Storage
-
-Each project gets its own isolated index. No shared state. No cross-project noise.
-
-```
-my-project/
-├── .indexa/              ← index data (auto-gitignored)
-│   ├── embeddings.json
-│   └── metadata.json
-├── .mcp.json             ← MCP config (auto-created)
-└── src/
-```
-
----
-
-## What Gets Indexed (and What Doesn't)
-
-**Indexed:** `*.ts`, `*.tsx`, `*.js`, `*.jsx` — functions, classes, components, exports, services, controllers.
-
-**Excluded automatically:** `node_modules`, `dist`, `.next`, `out`, `.vercel`, `build`, `coverage`, `*.test.*`, `*.spec.*`, `*.stories.*`, `*.min.js`, vendor scripts, e2e tests.
-
-Customize in `config/indexa.config.json`.
-
----
-
-## Query Intent Detection
-
-Indexa auto-classifies your query and adjusts search weights:
-
-| You ask | Indexa detects | Search strategy |
-|---------|---------------|----------------|
-| "how does auth work" | **flow** | Boost semantic (understand call chains) |
-| "explain vendor pricing" | **explain** | Balanced (broad context) |
-| "where is UserService used" | **references** | Boost name matching |
-| "fix login bug on token" | **debug** | Boost semantic + path |
-| "VendorAuthGuard" | **symbol lookup** | Direct O(1) name match |
-| "payment logic" | **search** | Default hybrid weights |
-
-No configuration needed. It just works.
-
----
-
-## API Endpoints
-
-Start with `indexa-mcp serve` (runs on port 3000):
+Start with `indexa serve`:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -389,31 +316,110 @@ Start with `indexa-mcp serve` (runs on port 3000):
 | POST | `/api/search` | Smart search |
 | GET | `/api/symbol?name=` | Symbol lookup |
 | GET | `/api/references?name=` | References + blast radius |
-| GET | `/api/blast-radius?name=` | Impact analysis for a symbol |
-| GET | `/api/impact-chain?name=&depth=` | Full transitive impact chain |
-| GET | `/api/dead-code` | Find unreferenced symbols |
-| GET | `/api/importers?path=` | Who imports from this file |
-| GET | `/api/circular-deps` | Detect circular dependencies |
-| GET | `/api/unused-exports` | Find exports nobody imports |
-| GET | `/api/duplicates?threshold=` | Find near-duplicate code |
-| GET | `/api/file?path=` | File chunks |
+| GET | `/api/blast-radius?name=` | Impact analysis |
+| GET | `/api/impact-chain?name=&depth=` | Full transitive impact |
+| GET | `/api/dead-code` | Unreferenced symbols |
+| GET | `/api/circular-deps` | Circular dependencies |
+| GET | `/api/unused-exports` | Dead exports |
+| GET | `/api/duplicates?threshold=` | Near-duplicate code |
+| GET | `/api/importers?path=` | File importers |
+| GET | `/api/file?path=` | File symbols |
+| GET | `/api/outline?path=` | File outline (no code) |
+| GET | `/api/symbol/:id` | Symbol by ID |
 | POST | `/api/update` | Incremental re-index |
 | GET | `/api/stats` | Index statistics |
 | GET | `/api/health` | Health check |
 
 ---
 
-## Why Not Just Use RAG / Copilot / Grep?
+## SDK — Build on Indexa
 
-| | Generic RAG | Copilot | Grep/Glob | **Indexa** |
-|---|---|---|---|---|
-| Returns | Raw text chunks | Full file reads | Line matches | **Symbols + deps + connections** |
-| Understands structure | No | No | No | **Yes (AST-parsed)** |
-| Traces execution | No | No | No | **Yes (call chains across files)** |
-| Blast radius | No | No | No | **Yes (what breaks if you change X)** |
-| Token efficiency | Poor | Poor | Medium | **50-70% reduction** |
-| Runs locally | Sometimes | No | Yes | **Yes (always)** |
-| Free | Sometimes | No | Yes | **Yes (always)** |
+```typescript
+import { createIndexa } from 'indexa-mcp/sdk';
+
+const indexa = createIndexa({ dataDir: '.indexa' });
+
+// Search
+const results = await indexa.searchCode('auth middleware');
+
+// Context bundle for LLMs
+const bundle = await indexa.contextBundle('login flow', 3000);
+
+// Code analysis
+const dead = indexa.findDeadCode();
+const cycles = indexa.findCircularDependencies();
+const dupes = indexa.findDuplicates(0.90);
+const impact = indexa.getFullImpactChain('UserService', 5);
+
+// Flow tracing
+const flow = await indexa.traceFlow('handleLogin', 5);
+```
+
+---
+
+## VS Code Extension
+
+Search "Indexa Code Intelligence" in VS Code, or install from [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=PrashantSingh.indexa-code-intelligence).
+
+| Feature | What it does |
+|---------|-------------|
+| **Ask Indexa** (`Ctrl+Shift+I`) | Query from sidebar |
+| **Show Flow** | Trace execution from selection |
+| **Find References** | Usages + blast radius |
+| **Copy for AI** | Export context to clipboard with structured prompt |
+| **Open for Copilot** | Open relevant files so Copilot has context |
+| **Auto-index on save** | Re-indexes automatically when you save |
+| **Health Check** | Verify connection and index status |
+
+Auto-starts the Indexa server. No manual terminal needed.
+
+---
+
+## Why Indexa Over Alternatives
+
+| | Copilot | ChatGPT | Cursor | Grep | **Indexa** |
+|---|---|---|---|---|---|
+| Understands code structure | No | No | Partial | No | **Yes (AST)** |
+| Traces execution across files | No | No | No | No | **Yes** |
+| Blast radius / impact analysis | No | No | No | No | **Yes** |
+| Dead code / circular deps | No | No | No | No | **Yes** |
+| Duplicate detection | No | No | No | No | **Yes** |
+| Token efficient | Poor | Poor | Medium | N/A | **50-70% reduction** |
+| Runs 100% locally | No | No | No | Yes | **Yes** |
+| Free forever | No | No | No | Yes | **Yes** |
+| Works with any LLM | No | No | No | N/A | **Yes (MCP/API/CLI)** |
+
+---
+
+## Per-Project Storage
+
+Each project gets its own isolated index. No shared state.
+
+```
+my-project/
+  .indexa/              <- index data (auto-gitignored)
+    embeddings.json
+    embeddings.json.bak <- auto-backup for recovery
+    metadata.json
+  .mcp.json             <- MCP config (auto-created)
+```
+
+---
+
+## Query Intent Detection
+
+Indexa auto-classifies your query and adjusts search weights:
+
+| You ask | Indexa detects | Search strategy |
+|---------|---------------|----------------|
+| "how does auth work" | **flow** | Boost semantic |
+| "explain vendor pricing" | **explain** | Balanced |
+| "where is UserService used" | **references** | Boost name matching |
+| "fix login bug on token" | **debug** | Boost semantic + path |
+| "VendorAuthGuard" | **symbol lookup** | Direct O(1) name match |
+| "payment logic" | **search** | Default hybrid weights |
+
+No configuration needed.
 
 ---
 
@@ -436,7 +442,7 @@ Start with `indexa-mcp serve` (runs on port 3000):
 
 - **TypeScript** — end to end
 - **ts-morph** — AST parsing
-- **Transformers.js** — local ML embeddings (gte-small, 384-dim)
+- **Transformers.js** — local ML embeddings (all-MiniLM-L6-v2, 384-dim)
 - **Express** — REST API
 - **Commander** — CLI
 - **@modelcontextprotocol/sdk** — MCP transport
@@ -444,8 +450,23 @@ Start with `indexa-mcp serve` (runs on port 3000):
 
 ---
 
+## The Numbers
+
+```
+18 MCP tools
+21 CLI commands
+21 API endpoints
+1  SDK (programmatic API)
+1  VS Code extension (auto-index, AI bridge)
+23 integration tests
+0  API keys required
+0  cloud dependencies
+```
+
+---
+
 ## License
 
-MIT — free forever, no API keys, runs offline.
+MIT — free forever, no API keys, runs 100% offline.
 
 Built by [Prashant Singh](https://prashantsinghmangat.netlify.app/).

@@ -109,6 +109,59 @@ function getProjectDataDir(projectRoot: string): string {
   return path.join(projectRoot, '.indexa').replace(/\\/g, '/');
 }
 
+/** Create or update CLAUDE.md so Claude Code always uses Indexa tools */
+function setupClaudeMd(projectRoot: string): boolean {
+  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+
+  const indexaSection = `
+# Indexa — Code Intelligence (auto-configured)
+
+This project uses Indexa for code intelligence. Always prefer Indexa MCP tools over built-in file reading when answering questions about this codebase.
+
+## How to read this codebase
+
+- **Understanding code**: Use \`indexa_context_bundle\` — returns relevant symbols + dependencies + connections within a token budget. This is your PRIMARY tool for any code question.
+- **Tracing execution**: Use \`indexa_flow\` — traces call chains across files. Use when asked "how does X work", "trace X", "what happens when X".
+- **Finding code patterns**: Use \`indexa_code_grep\` — regex search across indexed source files. Use for literal patterns like console.log, TODO, hardcoded strings.
+- **Finding usages**: Use \`indexa_references\` — finds all symbols that depend on a given name.
+- **Impact analysis**: Use \`indexa_blast_radius\` or \`indexa_impact_chain\` — shows what breaks if a symbol changes.
+- **Explaining code**: Use \`indexa_explain\` — generates human-readable explanation from actual code.
+- **Code quality**: Use \`indexa_dead_code\`, \`indexa_circular_deps\`, \`indexa_unused_exports\`, \`indexa_duplicates\`.
+- **Security**: Use \`indexa_security_scan\` for OWASP-grouped security analysis.
+- **PR review**: Use \`indexa_review_pr\` for context-aware review of recent changes.
+- **Symbol lookup**: Use \`indexa_symbol\` for instant name/ID lookup, \`indexa_file\` for file outlines.
+
+## Why use Indexa instead of reading files directly
+
+Indexa returns only relevant symbols with dependencies and connections — 50-70% fewer tokens than reading full files. It understands code structure (AST-parsed), traces execution across files, and maps blast radius. Always try Indexa first before opening files manually.
+`.trim();
+
+  try {
+    let content = '';
+    if (fs.existsSync(claudeMdPath)) {
+      content = fs.readFileSync(claudeMdPath, 'utf-8');
+    }
+
+    // Check if Indexa section already exists
+    if (content.includes('# Indexa — Code Intelligence')) {
+      // Replace existing section
+      content = content.replace(
+        /# Indexa — Code Intelligence[\s\S]*?(?=\n# (?!Indexa)|$)/,
+        indexaSection
+      );
+    } else {
+      // Append to end
+      const separator = content.endsWith('\n') || content === '' ? '' : '\n';
+      content = content + separator + '\n' + indexaSection + '\n';
+    }
+
+    fs.writeFileSync(claudeMdPath, content, 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Add .indexa/ to the project's .gitignore if not already present */
 function addToGitignore(projectRoot: string): void {
   const gitignorePath = path.join(projectRoot, '.gitignore');
@@ -267,6 +320,12 @@ export async function setupCommand(targetDir?: string): Promise<void> {
   const projectMcpOk = setupProjectMcp(projectRoot, dataDir);
   if (projectMcpOk) {
     success(`Project MCP created (${path.basename(projectRoot)}/.mcp.json)`);
+  }
+
+  // Configure CLAUDE.md so Claude Code always uses Indexa tools
+  const claudeMdOk = setupClaudeMd(projectRoot);
+  if (claudeMdOk) {
+    success('CLAUDE.md configured (Claude Code will use Indexa tools automatically)');
   }
 
   if (hasClaudeCode()) {

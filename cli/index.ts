@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { initProject } from './init';
 import { indexCommand, updateCommand } from './update';
-import { searchCommand, bundleCommand, flowCommand, explainCommand, deadCodeCommand, blastRadiusCommand, exportCommand, circularDepsCommand, unusedExportsCommand, duplicatesCommand, impactChainCommand, watchCommand } from './search';
+import { searchCommand, bundleCommand, flowCommand, explainCommand, deadCodeCommand, blastRadiusCommand, exportCommand, circularDepsCommand, unusedExportsCommand, duplicatesCommand, impactChainCommand, codeGrepCommand, watchCommand } from './search';
 import { cleanCommand, statsCommand } from './clean';
 import { setupCommand, doctorCommand } from './setup';
 import { benchmarkCommand } from './benchmark';
@@ -247,6 +247,22 @@ program
   .action((symbol, opts) => {
     impactChainCommand(symbol, {
       depth: parseInt(opts.depth, 10),
+      dataDir: opts.dataDir,
+    });
+  });
+
+program
+  .command('grep <pattern>')
+  .description('Regex pattern search across all indexed source files (like grep, but only your code)')
+  .option('-f, --file-pattern <pattern>', 'Filter files by path (e.g., "src/features", ".tsx")')
+  .option('-m, --max-results <number>', 'Max matches', '50')
+  .option('-C, --context <number>', 'Context lines around each match', '1')
+  .option('--data-dir <path>', 'Custom data directory')
+  .action((pattern, opts) => {
+    codeGrepCommand(pattern, {
+      filePattern: opts.filePattern,
+      maxResults: parseInt(opts.maxResults, 10),
+      context: parseInt(opts.context, 10),
       dataDir: opts.dataDir,
     });
   });

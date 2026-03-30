@@ -45,6 +45,9 @@ export function createRouter(
   router.get('/duplicates', indexController.getDuplicates);
   router.get('/impact-chain', indexController.getImpactChain);
 
+  // Code grep
+  router.get('/grep', indexController.codeGrep);
+
   // Stats and health
   router.get('/stats', indexController.getStats);
   router.get('/health', (_req, res) => {
